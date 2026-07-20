@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   BarChart3, 
   Users, 
@@ -29,27 +29,42 @@ interface DashboardPageProps {
 const DashboardPage: React.FC<DashboardPageProps> = ({ language }) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
+  const [dashboardData, setDashboardData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-  const stats = [
-    { title: 'Total Revenue', value: '$54,230', change: '+12.5%', isPositive: true, icon: <DollarSign className="w-6 h-6" /> },
-    { title: 'Active Users', value: '2,405', change: '+5.2%', isPositive: true, icon: <Users className="w-6 h-6" /> },
-    { title: 'Total Sales', value: '1,234', change: '-2.1%', isPositive: false, icon: <ShoppingBag className="w-6 h-6" /> },
-    { title: 'Conversion', value: '4.3%', change: '+1.2%', isPositive: true, icon: <Activity className="w-6 h-6" /> },
-  ];
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        const response = await fetch('http://localhost:3001/stats/dashboard');
+        const data = await response.json();
+        setDashboardData(data);
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const recentOrders = [
-    { id: '#ORD-001', customer: 'John Doe', product: 'Premium Fertilizer', amount: '$120.00', status: 'Completed', date: '2026-07-20' },
-    { id: '#ORD-002', customer: 'Jane Smith', product: 'Organic Seeds', amount: '$45.50', status: 'Processing', date: '2026-07-19' },
-    { id: '#ORD-003', customer: 'Robert Johnson', product: 'Farming Equipment', amount: '$850.00', status: 'Shipped', date: '2026-07-18' },
-    { id: '#ORD-004', customer: 'Emily Davis', product: 'Pesticide Pack', amount: '$75.00', status: 'Completed', date: '2026-07-17' },
-    { id: '#ORD-005', customer: 'Michael Wilson', product: 'Irrigation System', amount: '$1,200.00', status: 'Pending', date: '2026-07-16' },
-  ];
+    fetchDashboardData();
+  }, []);
 
-  const blogPosts = [
-    { id: 1, title: 'Sustainable Farming Practices for 2026', author: 'Jane Smith', date: '2026-07-15', status: 'Published' },
-    { id: 2, title: 'The Future of Agro-Tech', author: 'Admin User', date: '2026-07-18', status: 'Draft' },
-    { id: 3, title: 'Top 10 Organic Fertilizers', author: 'Robert Johnson', date: '2026-07-19', status: 'Published' },
-  ];
+  const getIconForStat = (title: string) => {
+    if (title.includes('Revenue')) return <DollarSign className="w-6 h-6" />;
+    if (title.includes('Users')) return <Users className="w-6 h-6" />;
+    if (title.includes('Sales')) return <ShoppingBag className="w-6 h-6" />;
+    return <Activity className="w-6 h-6" />;
+  };
+
+  const stats = dashboardData?.stats?.map((stat: any) => ({
+    ...stat,
+    icon: getIconForStat(stat.title)
+  })) || [];
+
+  const recentOrders = dashboardData?.recentOrders || [];
+  const blogPosts = dashboardData?.blogPosts || [];
+  const revenueOverview = dashboardData?.revenueOverview || [0,0,0,0,0,0,0,0,0,0,0,0];
+  const trafficSources = dashboardData?.trafficSources || { organic: 0, direct: 0, social: 0 };
+  const recentActivity = dashboardData?.recentActivity || { storageUsage: 0, monthlyTarget: 0, serverLoad: 0 };
 
   const navItems = [
     { id: 'overview', label: 'Overview', icon: <Home className="w-5 h-5" /> },
@@ -171,7 +186,12 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language }) => {
 
         {/* Dashboard Content */}
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-slate-50 p-4 sm:p-6 lg:p-8">
-          
+          {loading ? (
+            <div className="flex h-full items-center justify-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+            </div>
+          ) : (
+            <>
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
             {activeTab === 'overview' ? (
               <>
@@ -267,7 +287,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language }) => {
                 </div>
 
                 {/* Bars */}
-                {[30, 45, 25, 60, 40, 70, 50, 80, 55, 90, 65, 85].map((height, i) => (
+                {revenueOverview.map((height: number, i: number) => (
                   <div key={i} className="relative flex-1 group flex justify-center h-full items-end z-10">
                     <div 
                       className="w-full max-w-[2rem] bg-green-500 hover:bg-green-400 rounded-t-sm transition-all duration-300 relative cursor-pointer"
@@ -295,30 +315,30 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language }) => {
                 <div>
                   <div className="flex justify-between text-sm mb-2">
                     <span className="font-medium text-slate-700">Storage Usage</span>
-                    <span className="text-slate-500">65%</span>
+                    <span className="text-slate-500">{recentActivity.storageUsage}%</span>
                   </div>
                   <div className="w-full bg-slate-100 rounded-full h-2">
-                    <div className="bg-blue-500 h-2 rounded-full" style={{ width: '65%' }}></div>
+                    <div className="bg-blue-500 h-2 rounded-full" style={{ width: `${recentActivity.storageUsage}%` }}></div>
                   </div>
                 </div>
                 
                 <div>
                   <div className="flex justify-between text-sm mb-2">
                     <span className="font-medium text-slate-700">Monthly Target</span>
-                    <span className="text-slate-500">82%</span>
+                    <span className="text-slate-500">{recentActivity.monthlyTarget}%</span>
                   </div>
                   <div className="w-full bg-slate-100 rounded-full h-2">
-                    <div className="bg-green-500 h-2 rounded-full" style={{ width: '82%' }}></div>
+                    <div className="bg-green-500 h-2 rounded-full" style={{ width: `${recentActivity.monthlyTarget}%` }}></div>
                   </div>
                 </div>
 
                 <div>
                   <div className="flex justify-between text-sm mb-2">
                     <span className="font-medium text-slate-700">Server Load</span>
-                    <span className="text-slate-500">45%</span>
+                    <span className="text-slate-500">{recentActivity.serverLoad}%</span>
                   </div>
                   <div className="w-full bg-slate-100 rounded-full h-2">
-                    <div className="bg-yellow-500 h-2 rounded-full" style={{ width: '45%' }}></div>
+                    <div className="bg-yellow-500 h-2 rounded-full" style={{ width: `${recentActivity.serverLoad}%` }}></div>
                   </div>
                 </div>
               </div>
@@ -330,21 +350,21 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language }) => {
                     <div className="w-3 h-3 rounded-full bg-green-500"></div>
                     <span className="text-sm text-slate-600">Organic Search</span>
                   </div>
-                  <span className="text-sm font-medium text-slate-800">45%</span>
+                  <span className="text-sm font-medium text-slate-800">{trafficSources.organic}%</span>
                 </div>
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full bg-blue-500"></div>
                     <span className="text-sm text-slate-600">Direct</span>
                   </div>
-                  <span className="text-sm font-medium text-slate-800">30%</span>
+                  <span className="text-sm font-medium text-slate-800">{trafficSources.direct}%</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full bg-purple-500"></div>
                     <span className="text-sm text-slate-600">Social Media</span>
                   </div>
-                  <span className="text-sm font-medium text-slate-800">25%</span>
+                  <span className="text-sm font-medium text-slate-800">{trafficSources.social}%</span>
                 </div>
               </div>
             </div>
@@ -436,6 +456,8 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language }) => {
                 </table>
               </div>
             </div>
+          )}
+            </>
           )}
         </main>
       </div>
