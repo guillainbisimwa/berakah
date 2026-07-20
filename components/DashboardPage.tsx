@@ -498,6 +498,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language }) => {
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-slate-50 text-slate-500 text-sm uppercase tracking-wider">
+                      <th className="px-6 py-4 font-medium w-16">Image</th>
                       <th className="px-6 py-4 font-medium">Title</th>
                       <th className="px-6 py-4 font-medium">Author</th>
                       <th className="px-6 py-4 font-medium">Date</th>
@@ -508,7 +509,18 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language }) => {
                   <tbody className="divide-y divide-slate-100 text-sm">
                     {blogPosts.map((post) => (
                       <tr key={post.id} className="hover:bg-slate-50 transition-colors">
-                        <td className="px-6 py-4 font-medium text-slate-800">{post.title}</td>
+                        <td className="px-6 py-4">
+                          {post.image ? (
+                            <div className="w-12 h-12 rounded-lg overflow-hidden border border-slate-200">
+                              <img src={post.image} alt={post.title} className="w-full h-full object-cover" />
+                            </div>
+                          ) : (
+                            <div className="w-12 h-12 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center">
+                              <span className="text-slate-400 text-xs">No img</span>
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 font-medium text-slate-800 line-clamp-2 max-w-xs" title={post.title}>{post.title}</td>
                         <td className="px-6 py-4 text-slate-600">{post.author}</td>
                         <td className="px-6 py-4 text-slate-500">{post.date}</td>
                         <td className="px-6 py-4">
@@ -553,23 +565,39 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language }) => {
               </button>
             </div>
             <form onSubmit={handleSavePost} className="p-6 space-y-4 text-left">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Title</label>
-                <input required type="text" className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-green-500 outline-none transition-shadow" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Excerpt</label>
-                <textarea required className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-green-500 outline-none transition-shadow" value={formData.excerpt} onChange={e => setFormData({...formData, excerpt: e.target.value})} />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Content</label>
-                <textarea required rows={5} className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-green-500 outline-none transition-shadow" value={formData.content} onChange={e => setFormData({...formData, content: e.target.value})} />
+              <div className="flex gap-6">
+                <div className="w-2/3 space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Title</label>
+                    <input required type="text" className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-green-500 outline-none transition-shadow" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Excerpt</label>
+                    <textarea required className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-green-500 outline-none transition-shadow" value={formData.excerpt} onChange={e => setFormData({...formData, excerpt: e.target.value})} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Content</label>
+                    <textarea required rows={5} className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-green-500 outline-none transition-shadow" value={formData.content} onChange={e => setFormData({...formData, content: e.target.value})} />
+                  </div>
+                </div>
+                <div className="w-1/3">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Image URL</label>
+                  <input type="text" className="w-full border border-slate-200 rounded-lg p-2 mb-3 focus:ring-2 focus:ring-green-500 outline-none transition-shadow" value={formData.image} onChange={e => setFormData({...formData, image: e.target.value})} placeholder="Enter image URL..." />
+                  
+                  <div className="w-full aspect-video rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center overflow-hidden relative">
+                    {formData.image ? (
+                      <img src={formData.image} alt="Preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="text-center text-slate-400">
+                        <FileText className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                        <span className="text-sm">Image Preview</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Image URL</label>
-                  <input type="text" className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-green-500 outline-none transition-shadow" value={formData.image} onChange={e => setFormData({...formData, image: e.target.value})} />
-                </div>
+
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Date</label>
                   <input type="text" className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-green-500 outline-none transition-shadow" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
