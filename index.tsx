@@ -10,6 +10,7 @@ import ShopRoute from './shop/page';
 import ProductsRoute from './products/page';
 import ContactsRoute from './contacts/page';
 import BlogDetailPage from './components/BlogDetailPage';
+import DashboardPage from './components/DashboardPage';
 import { useApp } from './context/AppContext';
 
 // Component to handle page routing based on the current context path
@@ -30,6 +31,7 @@ const PageRouter = () => {
     case '/portfolio': return <PortfolioRoute />;
     case '/shop': return <ShopRoute />;
     case '/contacts': return <ContactsRoute />;
+    case '/dashboard': return <DashboardPage language={language} />;
     default: return <HomePage />;
   }
 };
