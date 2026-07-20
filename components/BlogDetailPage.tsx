@@ -11,8 +11,32 @@ interface BlogDetailPageProps {
 
 const BlogDetailPage: React.FC<BlogDetailPageProps> = ({ language, postId }) => {
   const { navigateTo } = useApp();
-  const posts = getPosts(language);
-  const post = posts.find(p => p.id === postId);
+  const [post, setPost] = React.useState<BlogPost | null>(null);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    const fetchPost = async () => {
+      try {
+        const res = await fetch(`http://localhost:3001/blog/${postId}`);
+        if (!res.ok) throw new Error('Post not found');
+        const data = await res.json();
+        setPost(data);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPost();
+  }, [postId]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white pt-20 pb-12 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+      </div>
+    );
+  }
 
   if (!post) {
     return (
