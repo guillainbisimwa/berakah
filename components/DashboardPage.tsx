@@ -38,11 +38,16 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language }) => {
   const [formData, setFormData] = useState({
     title: '', excerpt: '', content: '', image: '', date: '', readTime: '', author: '', authorRole: '', language: language
   });
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const handleOpenModal = (post: any = null) => {
+    setSelectedFile(null);
+    setImagePreview(null);
     if (post) {
       setEditingPost(post);
       setFormData(post);
+      setImagePreview(post.image || null);
     } else {
       setEditingPost(null);
       setFormData({
@@ -55,17 +60,38 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language }) => {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingPost(null);
+    setSelectedFile(null);
+    setImagePreview(null);
   };
 
   const handleSavePost = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      let finalImageUrl = formData.image;
+      
+      if (selectedFile) {
+        const uploadData = new FormData();
+        uploadData.append('file', selectedFile);
+        
+        const uploadRes = await fetch('http://localhost:3001/blog/upload', {
+          method: 'POST',
+          body: uploadData,
+        });
+        
+        if (uploadRes.ok) {
+          const uploadResult = await uploadRes.json();
+          finalImageUrl = 'http://localhost:3001' + uploadResult.url;
+        }
+      }
+
+      const postData = { ...formData, image: finalImageUrl };
+
       const url = editingPost ? `http://localhost:3001/blog/${editingPost.id}` : 'http://localhost:3001/blog';
       const method = editingPost ? 'PUT' : 'POST';
       await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(postData)
       });
       fetchBlogPosts();
       handleCloseModal();
@@ -580,19 +606,40 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language }) => {
                     <textarea required rows={5} className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-green-500 outline-none transition-shadow" value={formData.content} onChange={e => setFormData({...formData, content: e.target.value})} />
                   </div>
                 </div>
-                <div className="w-1/3">
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Image URL</label>
-                  <input type="text" className="w-full border border-slate-200 rounded-lg p-2 mb-3 focus:ring-2 focus:ring-green-500 outline-none transition-shadow" value={formData.image} onChange={e => setFormData({...formData, image: e.target.value})} placeholder="Enter image URL..." />
+                <div className="w-1/3 flex flex-col">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Featured Image</label>
                   
-                  <div className="w-full aspect-video rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center overflow-hidden relative">
-                    {formData.image ? (
-                      <img src={formData.image} alt="Preview" className="w-full h-full object-cover" />
+                  <div className="w-full aspect-video rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center overflow-hidden relative group hover:border-green-500 transition-colors mb-3">
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
+                      onChange={e => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setSelectedFile(file);
+                          setImagePreview(URL.createObjectURL(file));
+                        }
+                      }} 
+                    />
+                    {imagePreview ? (
+                      <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
                     ) : (
-                      <div className="text-center text-slate-400">
-                        <FileText className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                        <span className="text-sm">Image Preview</span>
+                      <div className="text-center text-slate-400 p-4">
+                        <Plus className="w-8 h-8 mx-auto mb-2 opacity-50 group-hover:text-green-500 transition-colors" />
+                        <span className="text-sm font-medium">Click to upload image</span>
                       </div>
                     )}
+                    {imagePreview && (
+                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                         <span className="text-white text-sm font-medium bg-black/30 px-3 py-1.5 rounded-full">Change Image</span>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="mt-auto pt-4 border-t border-slate-100">
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Image URL (Optional fallback)</label>
+                    <input type="text" className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-green-500 outline-none transition-shadow text-sm" value={formData.image} onChange={e => { setFormData({...formData, image: e.target.value}); if(!selectedFile) setImagePreview(e.target.value); }} placeholder="https://..." />
                   </div>
                 </div>
               </div>
