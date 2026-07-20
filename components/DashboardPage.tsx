@@ -30,7 +30,59 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language }) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
   const [dashboardData, setDashboardData] = useState<any>(null);
+  const [blogPosts, setBlogPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingPost, setEditingPost] = useState<any>(null);
+  const [formData, setFormData] = useState({
+    title: '', excerpt: '', content: '', image: '', date: '', readTime: '', author: '', authorRole: '', language: language
+  });
+
+  const handleOpenModal = (post: any = null) => {
+    if (post) {
+      setEditingPost(post);
+      setFormData(post);
+    } else {
+      setEditingPost(null);
+      setFormData({
+        title: '', excerpt: '', content: '', image: '', date: new Date().toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { day: '2-digit', month: 'long', year: 'numeric' }), readTime: '5 min', author: 'Admin', authorRole: 'Content Creator', language: language
+      });
+    }
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingPost(null);
+  };
+
+  const handleSavePost = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const url = editingPost ? `http://localhost:3001/blog/${editingPost.id}` : 'http://localhost:3001/blog';
+      const method = editingPost ? 'PUT' : 'POST';
+      await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+      fetchBlogPosts();
+      handleCloseModal();
+    } catch (err) {
+      console.error('Failed to save post', err);
+    }
+  };
+
+  const fetchBlogPosts = async () => {
+    try {
+      const response = await fetch(`http://localhost:3001/blog?language=${language}`);
+      const data = await response.json();
+      setBlogPosts(data);
+    } catch (error) {
+      console.error('Error fetching blog posts:', error);
+    }
+  };
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -46,7 +98,19 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language }) => {
     };
 
     fetchDashboardData();
-  }, []);
+    fetchBlogPosts();
+  }, [language]);
+
+  const handleDeletePost = async (id: string) => {
+    if (window.confirm(language === 'fr' ? 'Êtes-vous sûr de vouloir supprimer cet article ?' : 'Are you sure you want to delete this post?')) {
+      try {
+        await fetch(`http://localhost:3001/blog/${id}`, { method: 'DELETE' });
+        fetchBlogPosts(); // Refresh list
+      } catch (err) {
+        console.error('Failed to delete post:', err);
+      }
+    }
+  };
 
   const getIconForStat = (title: string) => {
     if (title.includes('Revenue')) return <DollarSign className="w-6 h-6" />;
@@ -57,23 +121,29 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language }) => {
 
   const stats = dashboardData?.stats?.map((stat: any) => ({
     ...stat,
+    title: language === 'fr' 
+      ? (stat.title === 'Total Revenue' ? 'Revenu Total' : stat.title === 'Active Users' ? 'Utilisateurs Actifs' : stat.title === 'Total Sales' ? 'Ventes Totales' : 'Taux de Conversion')
+      : stat.title,
     icon: getIconForStat(stat.title)
   })) || [];
 
-  const recentOrders = dashboardData?.recentOrders || [];
-  const blogPosts = dashboardData?.blogPosts || [];
+  const recentOrders = dashboardData?.recentOrders?.map((order: any) => ({
+    ...order,
+    status: language === 'fr' ? (order.status === 'Completed' ? 'Terminé' : order.status === 'Processing' ? 'En cours' : order.status === 'Shipped' ? 'Expédié' : 'En attente') : order.status
+  })) || [];
+
   const revenueOverview = dashboardData?.revenueOverview || [0,0,0,0,0,0,0,0,0,0,0,0];
   const trafficSources = dashboardData?.trafficSources || { organic: 0, direct: 0, social: 0 };
   const recentActivity = dashboardData?.recentActivity || { storageUsage: 0, monthlyTarget: 0, serverLoad: 0 };
 
   const navItems = [
-    { id: 'overview', label: 'Overview', icon: <Home className="w-5 h-5" /> },
-    { id: 'analytics', label: 'Analytics', icon: <BarChart3 className="w-5 h-5" /> },
-    { id: 'users', label: 'Customers', icon: <Users className="w-5 h-5" /> },
-    { id: 'products', label: 'Products', icon: <Package className="w-5 h-5" /> },
-    { id: 'orders', label: 'Orders', icon: <ShoppingBag className="w-5 h-5" /> },
-    { id: 'posts', label: 'Blog Posts', icon: <FileText className="w-5 h-5" /> },
-    { id: 'settings', label: 'Settings', icon: <Settings className="w-5 h-5" /> },
+    { id: 'overview', label: language === 'fr' ? 'Vue d\'ensemble' : 'Overview', icon: <Home className="w-5 h-5" /> },
+    { id: 'analytics', label: language === 'fr' ? 'Analytique' : 'Analytics', icon: <BarChart3 className="w-5 h-5" /> },
+    { id: 'users', label: language === 'fr' ? 'Clients' : 'Customers', icon: <Users className="w-5 h-5" /> },
+    { id: 'products', label: language === 'fr' ? 'Produits' : 'Products', icon: <Package className="w-5 h-5" /> },
+    { id: 'orders', label: language === 'fr' ? 'Commandes' : 'Orders', icon: <ShoppingBag className="w-5 h-5" /> },
+    { id: 'posts', label: language === 'fr' ? 'Articles de Blog' : 'Blog Posts', icon: <FileText className="w-5 h-5" /> },
+    { id: 'settings', label: language === 'fr' ? 'Paramètres' : 'Settings', icon: <Settings className="w-5 h-5" /> },
   ];
 
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
@@ -212,7 +282,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language }) => {
                   <h2 className="text-2xl font-bold text-slate-800">Blog Posts</h2>
                   <p className="text-slate-500 text-sm mt-1">Manage your website's blog content.</p>
                 </div>
-                <button className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors shadow-sm">
+                <button onClick={() => handleOpenModal()} className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors shadow-sm">
                   <Plus className="w-4 h-4" />
                   <span className="text-sm font-medium">New Post</span>
                 </button>
@@ -447,8 +517,8 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language }) => {
                           </span>
                         </td>
                         <td className="px-6 py-4 text-right">
-                          <button className="text-slate-400 hover:text-blue-600 mx-2 transition-colors"><Edit3 className="w-4 h-4" /></button>
-                          <button className="text-slate-400 hover:text-red-600 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                          <button onClick={() => handleOpenModal(post)} className="text-slate-400 hover:text-blue-600 mx-2 transition-colors"><Edit3 className="w-4 h-4" /></button>
+                          <button onClick={() => handleDeletePost(post.id)} className="text-slate-400 hover:text-red-600 transition-colors"><Trash2 className="w-4 h-4" /></button>
                         </td>
                       </tr>
                     ))}
@@ -468,6 +538,69 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language }) => {
           className="fixed inset-0 bg-slate-900/50 z-40 lg:hidden"
           onClick={toggleSidebar}
         ></div>
+      )}
+
+      {/* Modal for adding/editing post */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-slate-100 flex justify-between items-center sticky top-0 bg-white z-10">
+              <h2 className="text-xl font-bold text-slate-800">
+                {editingPost ? (language === 'fr' ? 'Modifier l\'article' : 'Edit Post') : (language === 'fr' ? 'Nouvel Article' : 'New Post')}
+              </h2>
+              <button onClick={handleCloseModal} className="text-slate-400 hover:text-slate-600">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <form onSubmit={handleSavePost} className="p-6 space-y-4 text-left">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Title</label>
+                <input required type="text" className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-green-500 outline-none transition-shadow" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Excerpt</label>
+                <textarea required className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-green-500 outline-none transition-shadow" value={formData.excerpt} onChange={e => setFormData({...formData, excerpt: e.target.value})} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Content</label>
+                <textarea required rows={5} className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-green-500 outline-none transition-shadow" value={formData.content} onChange={e => setFormData({...formData, content: e.target.value})} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Image URL</label>
+                  <input type="text" className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-green-500 outline-none transition-shadow" value={formData.image} onChange={e => setFormData({...formData, image: e.target.value})} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Date</label>
+                  <input type="text" className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-green-500 outline-none transition-shadow" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Read Time</label>
+                  <input type="text" className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-green-500 outline-none transition-shadow" value={formData.readTime} onChange={e => setFormData({...formData, readTime: e.target.value})} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Language</label>
+                  <select className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-green-500 outline-none transition-shadow" value={formData.language} onChange={e => setFormData({...formData, language: e.target.value})}>
+                    <option value="fr">French</option>
+                    <option value="en">English</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Author</label>
+                  <input type="text" className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-green-500 outline-none transition-shadow" value={formData.author} onChange={e => setFormData({...formData, author: e.target.value})} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Author Role</label>
+                  <input type="text" className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-green-500 outline-none transition-shadow" value={formData.authorRole} onChange={e => setFormData({...formData, authorRole: e.target.value})} />
+                </div>
+              </div>
+              <div className="pt-4 flex justify-end gap-3 border-t border-slate-100">
+                <button type="button" onClick={handleCloseModal} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">Cancel</button>
+                <button type="submit" className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">Save</button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );
