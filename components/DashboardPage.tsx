@@ -252,13 +252,39 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language, user, onLogout 
     return <Activity className="w-6 h-6" />;
   };
 
-  const stats = dashboardData?.stats?.map((stat: any) => ({
-    ...stat,
-    title: language === 'fr' 
-      ? (stat.title === 'Total Revenue' ? 'Revenu Total' : stat.title === 'Active Users' ? 'Utilisateurs Actifs' : stat.title === 'Total Sales' ? 'Ventes Totales' : 'Taux de Conversion')
-      : stat.title,
-    icon: getIconForStat(stat.title)
-  })) || [];
+  const equipmentCount = products.filter(p => ['tools', 'seeds', 'fertilizers', 'dryers'].includes(p.category?.toLowerCase())).length;
+  const shopCount = products.length - equipmentCount;
+
+  const stats = [
+    {
+      title: language === 'fr' ? 'Total Clients' : 'Total Customers',
+      value: users.length,
+      icon: <Users className="w-6 h-6" />,
+      isPositive: true,
+      change: '+10%'
+    },
+    {
+      title: language === 'fr' ? 'Produits Boutique' : 'Shop Products',
+      value: shopCount,
+      icon: <ShoppingBag className="w-6 h-6" />,
+      isPositive: true,
+      change: '+5%'
+    },
+    {
+      title: language === 'fr' ? 'Équipements' : 'Equipment',
+      value: equipmentCount,
+      icon: <Package className="w-6 h-6" />,
+      isPositive: true,
+      change: '+2%'
+    },
+    {
+      title: language === 'fr' ? 'Articles de Blog' : 'Blog Posts',
+      value: blogPosts.length,
+      icon: <FileText className="w-6 h-6" />,
+      isPositive: true,
+      change: '+12%'
+    }
+  ];
 
   const recentOrders = dashboardData?.recentOrders?.map((order: any) => ({
     ...order,
@@ -271,11 +297,9 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language, user, onLogout 
 
   const navItems = [
     { id: 'overview', label: language === 'fr' ? 'Vue d\'ensemble' : 'Overview', icon: <Home className="w-5 h-5" /> },
-    { id: 'analytics', label: language === 'fr' ? 'Analytique' : 'Analytics', icon: <BarChart3 className="w-5 h-5" /> },
     { id: 'users', label: language === 'fr' ? 'Clients' : 'Customers', icon: <Users className="w-5 h-5" /> },
     { id: 'shop', label: language === 'fr' ? 'Boutique' : 'Shop', icon: <ShoppingBag className="w-5 h-5" /> },
     { id: 'products', label: language === 'fr' ? 'Produits' : 'Products', icon: <Package className="w-5 h-5" /> },
-    { id: 'orders', label: language === 'fr' ? 'Commandes' : 'Orders', icon: <ShoppingBag className="w-5 h-5" /> },
     { id: 'posts', label: language === 'fr' ? 'Articles de Blog' : 'Blog Posts', icon: <FileText className="w-5 h-5" /> },
     { id: 'settings', label: language === 'fr' ? 'Paramètres' : 'Settings', icon: <Settings className="w-5 h-5" /> },
   ];
@@ -459,172 +483,6 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language, user, onLogout 
                 </div>
               </div>
             ))}
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Main Chart Area (Mockup) */}
-            <div className="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-              <div className="flex justify-between items-center mb-6">
-                <div>
-                  <h3 className="text-lg font-bold text-slate-800">{language === 'fr' ? 'Aperçu des Revenus' : 'Revenue Overview'}</h3>
-                  <p className="text-sm text-slate-500">{language === 'fr' ? 'Performance mensuelle des revenus et des ventes' : 'Monthly revenue and sales performance'}</p>
-                </div>
-                <select className="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-green-500 focus:border-green-500 block p-2">
-                  <option>{language === 'fr' ? 'Les 7 derniers jours' : 'Last 7 days'}</option>
-                  <option>{language === 'fr' ? 'Les 30 derniers jours' : 'Last 30 days'}</option>
-                  <option>{language === 'fr' ? 'Cette année' : 'This Year'}</option>
-                </select>
-              </div>
-              
-              <div className="h-72 w-full flex items-end gap-2 pb-6 pt-4 px-2 relative border-b border-l border-slate-100">
-                {/* Y-axis labels */}
-                <div className="absolute left-0 top-0 h-full w-8 flex flex-col justify-between text-xs text-slate-400 pb-6 -ml-8 text-right pr-2">
-                  <span>$10k</span>
-                  <span>$7.5k</span>
-                  <span>$5k</span>
-                  <span>$2.5k</span>
-                  <span>$0</span>
-                </div>
-                
-                {/* Horizontal grid lines */}
-                <div className="absolute left-0 top-0 w-full h-full flex flex-col justify-between pb-6 pointer-events-none">
-                  <div className="w-full h-px bg-slate-100"></div>
-                  <div className="w-full h-px bg-slate-100"></div>
-                  <div className="w-full h-px bg-slate-100"></div>
-                  <div className="w-full h-px bg-slate-100"></div>
-                  <div className="w-full h-px bg-slate-400"></div>
-                </div>
-
-                {/* Bars */}
-                {revenueOverview.map((height: number, i: number) => (
-                  <div key={i} className="relative flex-1 group flex justify-center h-full items-end z-10">
-                    <div 
-                      className="w-full max-w-[2rem] bg-green-500 hover:bg-green-400 rounded-t-sm transition-all duration-300 relative cursor-pointer"
-                      style={{ height: `${height}%` }}
-                    >
-                      {/* Tooltip */}
-                      <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 bg-slate-800 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                        ${(height * 100).toFixed(0)}
-                      </div>
-                    </div>
-                    {/* X-axis label */}
-                    <div className="absolute -bottom-6 text-xs text-slate-400 w-full text-center">
-                      {language === 'fr' ? ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'][i] : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][i]}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Recent Activity / Quick Actions */}
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex flex-col">
-              <h3 className="text-lg font-bold text-slate-800 mb-6">{language === 'fr' ? 'Statistiques Rapides' : 'Quick Stats'}</h3>
-              
-              <div className="space-y-6 flex-1">
-                <div>
-                  <div className="flex justify-between text-sm mb-2">
-                    <span className="font-medium text-slate-700">{language === 'fr' ? 'Utilisation du Stockage' : 'Storage Usage'}</span>
-                    <span className="text-slate-500">{recentActivity.storageUsage}%</span>
-                  </div>
-                  <div className="w-full bg-slate-100 rounded-full h-2">
-                    <div className="bg-blue-500 h-2 rounded-full" style={{ width: `${recentActivity.storageUsage}%` }}></div>
-                  </div>
-                </div>
-                
-                <div>
-                  <div className="flex justify-between text-sm mb-2">
-                    <span className="font-medium text-slate-700">{language === 'fr' ? 'Objectif Mensuel' : 'Monthly Target'}</span>
-                    <span className="text-slate-500">{recentActivity.monthlyTarget}%</span>
-                  </div>
-                  <div className="w-full bg-slate-100 rounded-full h-2">
-                    <div className="bg-green-500 h-2 rounded-full" style={{ width: `${recentActivity.monthlyTarget}%` }}></div>
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex justify-between text-sm mb-2">
-                    <span className="font-medium text-slate-700">{language === 'fr' ? 'Charge du Serveur' : 'Server Load'}</span>
-                    <span className="text-slate-500">{recentActivity.serverLoad}%</span>
-                  </div>
-                  <div className="w-full bg-slate-100 rounded-full h-2">
-                    <div className="bg-yellow-500 h-2 rounded-full" style={{ width: `${recentActivity.serverLoad}%` }}></div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-8 pt-6 border-t border-slate-100">
-                <h4 className="text-sm font-semibold text-slate-800 mb-4">{language === 'fr' ? 'Sources de Trafic' : 'Traffic Sources'}</h4>
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                    <span className="text-sm text-slate-600">{language === 'fr' ? 'Recherche Organique' : 'Organic Search'}</span>
-                  </div>
-                  <span className="text-sm font-medium text-slate-800">{trafficSources.organic}%</span>
-                </div>
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                    <span className="text-sm text-slate-600">Direct</span>
-                  </div>
-                  <span className="text-sm font-medium text-slate-800">{trafficSources.direct}%</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-purple-500"></div>
-                    <span className="text-sm text-slate-600">{language === 'fr' ? 'Réseaux Sociaux' : 'Social Media'}</span>
-                  </div>
-                  <span className="text-sm font-medium text-slate-800">{trafficSources.social}%</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Recent Orders Table */}
-          <div className="mt-8 bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-            <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <div>
-                <h3 className="text-lg font-bold text-slate-800">{language === 'fr' ? 'Commandes Récentes' : 'Recent Orders'}</h3>
-                <p className="text-sm text-slate-500">{language === 'fr' ? 'Dernières transactions de votre boutique' : 'Latest transactions from your store'}</p>
-              </div>
-              <button className="text-sm font-medium text-green-600 hover:text-green-700 flex items-center gap-1">
-                {language === 'fr' ? 'Tout voir' : 'View all'} <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-slate-50 text-slate-500 text-sm uppercase tracking-wider">
-                    <th className="px-6 py-4 font-medium">{language === 'fr' ? 'ID Commande' : 'Order ID'}</th>
-                    <th className="px-6 py-4 font-medium">{language === 'fr' ? 'Client' : 'Customer'}</th>
-                    <th className="px-6 py-4 font-medium">{language === 'fr' ? 'Produit' : 'Product'}</th>
-                    <th className="px-6 py-4 font-medium">{language === 'fr' ? 'Date' : 'Date'}</th>
-                    <th className="px-6 py-4 font-medium">{language === 'fr' ? 'Montant' : 'Amount'}</th>
-                    <th className="px-6 py-4 font-medium">{language === 'fr' ? 'Statut' : 'Status'}</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-sm">
-                  {recentOrders.map((order, i) => (
-                    <tr key={i} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-6 py-4 font-medium text-slate-800">{order.id}</td>
-                      <td className="px-6 py-4 text-slate-600">{order.customer}</td>
-                      <td className="px-6 py-4 text-slate-600">{order.product}</td>
-                      <td className="px-6 py-4 text-slate-500">{order.date}</td>
-                      <td className="px-6 py-4 font-medium text-slate-800">{order.amount}</td>
-                      <td className="px-6 py-4">
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                          order.status === 'Completed' ? 'bg-green-100 text-green-700' :
-                          order.status === 'Processing' ? 'bg-blue-100 text-blue-700' :
-                          order.status === 'Shipped' ? 'bg-purple-100 text-purple-700' :
-                          'bg-yellow-100 text-yellow-700'
-                        }`}>
-                          {order.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
           </div>
           </>)}
 
