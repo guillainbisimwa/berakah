@@ -19,6 +19,7 @@ import BlogPage from './components/BlogPage';
 import PortfolioPage from './components/PortfolioPage';
 import ShopPage from './components/ShopPage';
 import ContactsPage from './components/ContactsPage';
+import DashboardPage from './components/DashboardPage';
 import { translations } from './translations';
 
 const App: React.FC = () => {
@@ -66,6 +67,8 @@ const App: React.FC = () => {
         return <ShopPage language={language} />;
       case 'contacts':
         return <ContactsPage language={language} />;
+      case 'dashboard':
+        return <DashboardPage language={language} />;
       default:
         return <Hero language={language} />;
     }
