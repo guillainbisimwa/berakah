@@ -10,11 +10,14 @@ import ShopRoute from './shop/page';
 import ProductsRoute from './products/page';
 import ContactsRoute from './contacts/page';
 import BlogDetailPage from './components/BlogDetailPage';
+import DashboardPage from './components/DashboardPage';
 import { useApp } from './context/AppContext';
+
+import AuthPage from './components/AuthPage';
 
 // Component to handle page routing based on the current context path
 const PageRouter = () => {
-  const { currentPath, language } = useApp();
+  const { currentPath, language, token, user, logout, setAuth, navigateTo } = useApp();
   
   // Check for blog detail pages
   if (currentPath.startsWith('/blog/')) {
@@ -22,6 +25,11 @@ const PageRouter = () => {
     return <BlogDetailPage language={language} postId={postId} />;
   }
   
+  const handleAuthSuccess = (userData: any, authToken: string) => {
+    setAuth(userData, authToken);
+    navigateTo('/dashboard');
+  };
+
   switch (currentPath) {
     case '/': return <HomePage />;
     case '/about': return <AboutRoute />;
@@ -30,6 +38,13 @@ const PageRouter = () => {
     case '/portfolio': return <PortfolioRoute />;
     case '/shop': return <ShopRoute />;
     case '/contacts': return <ContactsRoute />;
+    case '/auth': return <AuthPage language={language} onAuthSuccess={handleAuthSuccess} />;
+    case '/dashboard': 
+      if (!token) {
+        // Render auth page if not logged in
+        return <AuthPage language={language} onAuthSuccess={handleAuthSuccess} />;
+      }
+      return <DashboardPage language={language} user={user} onLogout={logout} />;
     default: return <HomePage />;
   }
 };

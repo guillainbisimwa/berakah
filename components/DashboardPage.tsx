@@ -1,0 +1,1308 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  BarChart3, 
+  Users, 
+  ShoppingBag, 
+  DollarSign, 
+  TrendingUp, 
+  Activity,
+  Calendar,
+  Bell,
+  Search,
+  Menu,
+  X,
+  ChevronRight,
+  Package,
+  Settings,
+  LogOut,
+  Home,
+  FileText,
+  Edit3,
+  Trash2,
+  Plus,
+  Eye
+} from 'lucide-react';
+
+interface DashboardPageProps {
+  language: 'fr' | 'en';
+  user?: any;
+  onLogout?: () => void;
+}
+
+const DashboardPage: React.FC<DashboardPageProps> = ({ language, user, onLogout }) => {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('overview');
+  const [dashboardData, setDashboardData] = useState<any>(null);
+  const [blogPosts, setBlogPosts] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isShopModalOpen, setIsShopModalOpen] = useState(false);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [viewingItem, setViewingItem] = useState<{type: 'user' | 'product' | 'post', data: any} | null>(null);
+  const [editingPost, setEditingPost] = useState<any>(null);
+  const [editingProduct, setEditingProduct] = useState<any>(null);
+  const [formData, setFormData] = useState({
+    title: '', excerpt: '', content: '', image: '', date: '', readTime: '', author: '', authorRole: '', language: 'fr'
+  });
+  const [shopFormData, setShopFormData] = useState({
+    image: '', price: '', rating: 5.0, category: 'Tisanes', weight: '70g',
+    content: {
+      fr: { name: '', desc: '', specs: [''] },
+      en: { name: '', desc: '', specs: [''] }
+    }
+  });
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+
+  const handleOpenModal = (post: any = null) => {
+    setSelectedFile(null);
+    setImagePreview(null);
+    if (post) {
+      setEditingPost(post);
+      setFormData(post);
+      setImagePreview(post.image || null);
+    } else {
+      setEditingPost(null);
+      setFormData({
+        title: '', excerpt: '', content: '', image: '', date: new Date().toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { day: '2-digit', month: 'long', year: 'numeric' }), readTime: '5 min', author: 'Admin', authorRole: 'Content Creator', language: language
+      });
+    }
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingPost(null);
+    setSelectedFile(null);
+    setImagePreview(null);
+  };
+
+  const handleCloseShopModal = () => {
+    setIsShopModalOpen(false);
+    setEditingProduct(null);
+    setSelectedFile(null);
+    setImagePreview(null);
+  };
+
+  const handleViewItem = (type: 'user' | 'product' | 'post', data: any) => {
+    setViewingItem({ type, data });
+    setIsViewModalOpen(true);
+  };
+
+  const handleCloseViewModal = () => {
+    setIsViewModalOpen(false);
+    setViewingItem(null);
+  };
+
+  const handleSaveProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      let finalImageUrl = shopFormData.image;
+      
+      if (selectedFile) {
+        const uploadData = new FormData();
+        uploadData.append('file', selectedFile);
+        
+        const uploadRes = await fetch('http://localhost:3001/products/upload', {
+          method: 'POST',
+          body: uploadData,
+        });
+        
+        if (uploadRes.ok) {
+          const uploadResult = await uploadRes.json();
+          finalImageUrl = 'http://localhost:3001' + uploadResult.url;
+        }
+      }
+
+      const productData = { ...shopFormData, image: finalImageUrl };
+
+      const url = editingProduct ? `http://localhost:3001/products/${editingProduct.id}` : 'http://localhost:3001/products';
+      const method = editingProduct ? 'PUT' : 'POST';
+      await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(productData)
+      });
+      fetchProducts();
+      handleCloseShopModal();
+    } catch (err) {
+      console.error('Failed to save product', err);
+    }
+  };
+
+  const handleSavePost = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      let finalImageUrl = formData.image;
+      
+      if (selectedFile) {
+        const uploadData = new FormData();
+        uploadData.append('file', selectedFile);
+        
+        const uploadRes = await fetch('http://localhost:3001/blog/upload', {
+          method: 'POST',
+          body: uploadData,
+        });
+        
+        if (uploadRes.ok) {
+          const uploadResult = await uploadRes.json();
+          finalImageUrl = 'http://localhost:3001' + uploadResult.url;
+        }
+      }
+
+      const postData = { ...formData, image: finalImageUrl };
+
+      const url = editingPost ? `http://localhost:3001/blog/${editingPost.id}` : 'http://localhost:3001/blog';
+      const method = editingPost ? 'PUT' : 'POST';
+      await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(postData)
+      });
+      fetchPosts();
+      handleCloseModal();
+    } catch (err) {
+      console.error('Failed to save post', err);
+    }
+  };
+
+  const fetchPosts = async () => {
+    try {
+      const response = await fetch(`http://localhost:3001/blog?language=${language}`);
+      const data = await response.json();
+      setBlogPosts(data);
+    } catch (error) {
+      console.error('Error fetching blog posts:', error);
+    }
+  };
+
+  const fetchProducts = async () => {
+    try {
+      const response = await fetch(`http://localhost:3001/products`);
+      const data = await response.json();
+      setProducts(data);
+    } catch (error) {
+      console.error('Failed to fetch products', error);
+    }
+  };
+
+  const fetchUsers = async () => {
+    try {
+      const response = await fetch('http://localhost:3001/users');
+      const data = await response.json();
+      setUsers(data);
+    } catch (error) {
+      console.error('Failed to fetch users', error);
+    }
+  };
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        const response = await fetch('http://localhost:3001/stats/dashboard');
+        const data = await response.json();
+        setDashboardData(data);
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+    fetchProducts();
+    fetchUsers();
+  }, []);
+
+  useEffect(() => {
+    fetchPosts();
+  }, [language]);
+
+  const handleDeletePost = async (id: string) => {
+    if (window.confirm(language === 'fr' ? 'Êtes-vous sûr de vouloir supprimer cet article ?' : 'Are you sure you want to delete this post?')) {
+      try {
+        await fetch(`http://localhost:3001/blog/${id}`, { method: 'DELETE' });
+        fetchPosts(); // Refresh list
+      } catch (err) {
+        console.error('Failed to delete post:', err);
+      }
+    }
+  };
+
+  const handleDeleteProduct = async (id: string) => {
+    if (window.confirm(language === 'fr' ? 'Êtes-vous sûr de vouloir supprimer ce produit ?' : 'Are you sure you want to delete this product?')) {
+      try {
+        await fetch(`http://localhost:3001/products/${id}`, { method: 'DELETE' });
+        fetchProducts(); // Refresh list
+      } catch (err) {
+        console.error('Failed to delete product:', err);
+      }
+    }
+  };
+
+  const handleDeleteUser = async (id: string) => {
+    if (window.confirm(language === 'fr' ? 'Êtes-vous sûr de vouloir supprimer ce client ?' : 'Are you sure you want to delete this client?')) {
+      try {
+        await fetch(`http://localhost:3001/users/${id}`, { method: 'DELETE' });
+        fetchUsers(); // Refresh list
+      } catch (err) {
+        console.error('Failed to delete user:', err);
+      }
+    }
+  };
+
+  const handleSeedProducts = async () => {
+    // Add logic later
+  };
+
+  const getIconForStat = (title: string) => {
+    if (title.includes('Revenue')) return <DollarSign className="w-6 h-6" />;
+    if (title.includes('Users')) return <Users className="w-6 h-6" />;
+    if (title.includes('Sales')) return <ShoppingBag className="w-6 h-6" />;
+    return <Activity className="w-6 h-6" />;
+  };
+
+  const equipmentCount = products.filter(p => ['tools', 'seeds', 'fertilizers', 'dryers'].includes(p.category?.toLowerCase())).length;
+  const shopCount = products.length - equipmentCount;
+
+  const stats = [
+    {
+      title: language === 'fr' ? 'Total Clients' : 'Total Customers',
+      value: users.length,
+      icon: <Users className="w-6 h-6" />,
+      isPositive: true,
+      change: '+10%'
+    },
+    {
+      title: language === 'fr' ? 'Produits Boutique' : 'Shop Products',
+      value: shopCount,
+      icon: <ShoppingBag className="w-6 h-6" />,
+      isPositive: true,
+      change: '+5%'
+    },
+    {
+      title: language === 'fr' ? 'Équipements' : 'Equipment',
+      value: equipmentCount,
+      icon: <Package className="w-6 h-6" />,
+      isPositive: true,
+      change: '+2%'
+    },
+    {
+      title: language === 'fr' ? 'Articles de Blog' : 'Blog Posts',
+      value: blogPosts.length,
+      icon: <FileText className="w-6 h-6" />,
+      isPositive: true,
+      change: '+12%'
+    }
+  ];
+
+  const recentOrders = dashboardData?.recentOrders?.map((order: any) => ({
+    ...order,
+    status: language === 'fr' ? (order.status === 'Completed' ? 'Terminé' : order.status === 'Processing' ? 'En cours' : order.status === 'Shipped' ? 'Expédié' : 'En attente') : order.status
+  })) || [];
+
+  const revenueOverview = dashboardData?.revenueOverview || [0,0,0,0,0,0,0,0,0,0,0,0];
+  const trafficSources = dashboardData?.trafficSources || { organic: 0, direct: 0, social: 0 };
+  const recentActivity = dashboardData?.recentActivity || { storageUsage: 0, monthlyTarget: 0, serverLoad: 0 };
+
+  const allNavItems = [
+    { id: 'overview', label: language === 'fr' ? 'Vue d\'ensemble' : 'Overview', icon: <Home className="w-5 h-5" /> },
+    { id: 'users', label: language === 'fr' ? 'Clients' : 'Customers', icon: <Users className="w-5 h-5" />, adminOnly: true },
+    { id: 'shop', label: language === 'fr' ? 'Boutique' : 'Shop', icon: <ShoppingBag className="w-5 h-5" /> },
+    { id: 'products', label: language === 'fr' ? 'Produits' : 'Products', icon: <Package className="w-5 h-5" /> },
+    // Later we can add Card / Wishlist here if requested
+    { id: 'posts', label: language === 'fr' ? 'Articles de Blog' : 'Blog Posts', icon: <FileText className="w-5 h-5" />, adminOnly: true },
+    { id: 'settings', label: language === 'fr' ? 'Paramètres' : 'Settings', icon: <Settings className="w-5 h-5" /> },
+  ];
+
+  const navItems = allNavItems.filter(item => !item.adminOnly || user?.role === 'admin');
+
+  const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
+
+  return (
+    <div className="flex h-screen bg-slate-50 overflow-hidden font-sans text-slate-800">
+      {/* Sidebar */}
+      <aside 
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-slate-200 transition-transform duration-300 ease-in-out ${
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        } lg:relative lg:translate-x-0 flex flex-col`}
+      >
+        <div className="h-16 flex items-center justify-between px-6 border-b border-slate-100">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center text-white font-bold text-xl">
+              B
+            </div>
+            <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-green-600 to-emerald-500">
+              Berakah
+            </span>
+          </div>
+          <button onClick={toggleSidebar} className="lg:hidden text-slate-400 hover:text-slate-600">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto py-4 px-3">
+          <div className="mb-4 px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+            Menu
+          </div>
+          <nav className="space-y-1">
+            {navItems.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 ${
+                  activeTab === item.id 
+                    ? 'bg-green-50 text-green-700 font-medium' 
+                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                }`}
+              >
+                <div className={activeTab === item.id ? 'text-green-600' : 'text-slate-400'}>
+                  {item.icon}
+                </div>
+                <span>{item.label}</span>
+                {activeTab === item.id && (
+                  <div className="ml-auto w-1.5 h-1.5 rounded-full bg-green-500"></div>
+                )}
+              </button>
+            ))}
+          </nav>
+        </div>
+
+        <div className="p-4 border-t border-slate-100">
+          <button 
+            onClick={onLogout}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-red-50 hover:text-red-600 transition-colors"
+          >
+            <LogOut className="w-5 h-5 text-slate-400 group-hover:text-red-500 transition-colors" />
+            <span className="font-medium">{language === 'fr' ? 'Déconnexion' : 'Logout'}</span>
+          </button>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col h-full overflow-hidden relative">
+        {/* Top Header */}
+        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-6 lg:px-8 z-10 shadow-sm">
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={toggleSidebar} 
+              className="lg:hidden p-2 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 focus:outline-none"
+            >
+              <Menu className="w-6 h-6" />
+            </button>
+            <h1 className="text-xl font-semibold text-slate-800 capitalize hidden sm:block">
+              {language === 'fr' ? 'Tableau de bord ' + activeTab : activeTab + ' Dashboard'}
+            </h1>
+          </div>
+
+          <div className="flex items-center gap-4 sm:gap-6">
+            <div className="relative hidden md:block">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
+              <input 
+                type="text" 
+                placeholder={language === 'fr' ? "Rechercher..." : "Search..."} 
+                className="pl-9 pr-4 py-2 w-64 rounded-full bg-slate-100 border-transparent focus:bg-white focus:border-green-500 focus:ring-2 focus:ring-green-200 text-sm transition-all"
+              />
+            </div>
+            
+            <div className="flex items-center gap-3">
+              <button className="relative p-2 text-slate-400 hover:text-slate-600 transition-colors rounded-full hover:bg-slate-100">
+                <Bell className="w-5 h-5" />
+                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
+              </button>
+              
+              <div className="h-8 w-px bg-slate-200 mx-1"></div>
+              
+              <div className="flex items-center gap-3 pl-4 border-l border-slate-200">
+                <div className="w-9 h-9 rounded-full bg-slate-200 overflow-hidden border-2 border-white shadow-sm">
+                  <img 
+                    src={`https://ui-avatars.com/api/?name=${user?.firstName || 'Admin'}+${user?.lastName || 'User'}&background=0D8ABC&color=fff`}
+                    alt={user?.firstName || "Admin User"} 
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="hidden md:block">
+                  <p className="text-sm font-medium text-slate-700 leading-none">{user?.firstName} {user?.lastName}</p>
+                  <p className="text-xs text-slate-500 mt-1">{user?.role === 'admin' ? (language === 'fr' ? 'Administrateur' : 'Administrator') : (language === 'fr' ? 'Utilisateur' : 'User')}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {/* Dashboard Content */}
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-slate-50 p-4 sm:p-6 lg:p-8">
+          {loading ? (
+            <div className="flex h-full items-center justify-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+            </div>
+          ) : (
+            <>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+            {activeTab === 'overview' ? (
+              <>
+                <div>
+                  <h2 className="text-2xl font-bold text-slate-800">{language === 'fr' ? 'Bon retour, Admin 👋' : 'Welcome back, Admin 👋'}</h2>
+                  <p className="text-slate-500 text-sm mt-1">{language === 'fr' ? "Voici ce qui se passe sur votre projet aujourd'hui." : "Here is what's happening with your project today."}</p>
+                </div>
+                <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm">
+                  <Calendar className="w-4 h-4 text-slate-400" />
+                  <span className="text-sm font-medium text-slate-600">
+                    {new Date().toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </span>
+                </div>
+              </>
+            ) : activeTab === 'posts' ? (
+              <>
+                <div>
+                  <h2 className="text-2xl font-bold text-slate-800">{language === 'fr' ? 'Articles de Blog' : 'Blog Posts'}</h2>
+                  <p className="text-slate-500 text-sm mt-1">{language === 'fr' ? "Gérez le contenu du blog de votre site Web." : "Manage your website's blog content."}</p>
+                </div>
+                <button onClick={() => handleOpenModal()} className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors shadow-sm">
+                  <Plus className="w-4 h-4" />
+                  <span className="text-sm font-medium">{language === 'fr' ? 'Nouvel Article' : 'New Post'}</span>
+                </button>
+              </>
+            ) : (
+              <div>
+                <h2 className="text-2xl font-bold text-slate-800 capitalize">{activeTab}</h2>
+              </div>
+            )}
+          </div>
+
+          {activeTab === 'overview' && (
+            <>
+              {/* Stats Grid */}
+          {user?.role === 'admin' && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              {stats.map((stat, index) => (
+                <div key={index} className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-green-50 to-transparent rounded-bl-full -mr-4 -mt-4 opacity-50 group-hover:scale-110 transition-transform"></div>
+                  
+                  <div className="flex justify-between items-start mb-4">
+                    <div className={`p-3 rounded-xl ${stat.isPositive ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+                      {stat.icon}
+                    </div>
+                    <div className={`flex items-center gap-1 text-sm font-medium px-2.5 py-1 rounded-full ${
+                      stat.isPositive ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+                    }`}>
+                      {stat.isPositive ? <TrendingUp className="w-3 h-3" /> : <TrendingUp className="w-3 h-3 transform rotate-180" />}
+                      {stat.change}
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h3 className="text-slate-500 text-sm font-medium mb-1">{stat.title}</h3>
+                    <p className="text-3xl font-bold text-slate-800">{stat.value}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className={`grid grid-cols-1 gap-8 ${user?.role === 'admin' ? 'lg:grid-cols-2' : 'max-w-3xl'}`}>
+            {/* Recent Products */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex flex-col">
+              <div className="p-6 border-b border-slate-100 flex justify-between items-center">
+                <div>
+                  <h3 className="text-lg font-bold text-slate-800">{language === 'fr' ? 'Derniers Produits' : 'Recent Products'}</h3>
+                  <p className="text-sm text-slate-500">{language === 'fr' ? 'Récemment ajoutés au catalogue' : 'Recently added to catalog'}</p>
+                </div>
+                <button onClick={() => setActiveTab('products')} className="text-sm font-medium text-green-600 hover:text-green-700 flex items-center gap-1">
+                  {language === 'fr' ? 'Tout voir' : 'View all'} <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="p-0 flex-1">
+                <ul className="divide-y divide-slate-100">
+                  {products.slice(-4).reverse().map((product, i) => (
+                    <li key={product.id || i} className="p-4 hover:bg-slate-50 transition-colors flex items-center gap-4">
+                      {product.image ? (
+                        <div className="w-14 h-14 rounded-xl overflow-hidden border border-slate-200 shrink-0">
+                          <img src={product.image} alt={product.content?.en?.name} className="w-full h-full object-cover" />
+                        </div>
+                      ) : (
+                        <div className="w-14 h-14 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0">
+                          <Package className="w-6 h-6 text-slate-400" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-slate-800 truncate">
+                          {product.content?.[language]?.name || product.content?.fr?.name || 'Unnamed Product'}
+                        </p>
+                        <p className="text-xs text-slate-500 truncate mt-0.5">{product.category}</p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className="text-sm font-bold text-green-600">{product.price}</span>
+                      </div>
+                    </li>
+                  ))}
+                  {products.length === 0 && (
+                    <li className="p-8 text-center text-slate-500 text-sm">
+                      {language === 'fr' ? 'Aucun produit trouvé.' : 'No products found.'}
+                    </li>
+                  )}
+                </ul>
+              </div>
+            </div>
+
+            {user?.role === 'admin' && (
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex flex-col">
+                <div className="p-6 border-b border-slate-100 flex justify-between items-center">
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-800">{language === 'fr' ? 'Nouveaux Clients' : 'New Customers'}</h3>
+                    <p className="text-sm text-slate-500">{language === 'fr' ? 'Inscriptions récentes' : 'Recently registered'}</p>
+                  </div>
+                  <button onClick={() => setActiveTab('users')} className="text-sm font-medium text-green-600 hover:text-green-700 flex items-center gap-1">
+                    {language === 'fr' ? 'Tout voir' : 'View all'} <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="p-0 flex-1">
+                  <ul className="divide-y divide-slate-100">
+                    {users.slice(-5).reverse().map((user, i) => (
+                      <li key={user._id || i} className="p-4 hover:bg-slate-50 transition-colors flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-sm shrink-0 bg-slate-100">
+                          <img 
+                            src={`https://ui-avatars.com/api/?name=${user.firstName || 'U'}+${user.lastName || ''}&background=0D8ABC&color=fff`} 
+                            alt="avatar" 
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold text-slate-800 truncate">
+                            {user.firstName} {user.lastName}
+                          </p>
+                          <p className="text-xs text-slate-500 truncate mt-0.5">{user.email}</p>
+                        </div>
+                        <div className="shrink-0">
+                          <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                            user.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-slate-100 text-slate-600'
+                          }`}>
+                            {user.role === 'admin' ? 'Admin' : 'User'}
+                          </span>
+                        </div>
+                      </li>
+                    ))}
+                    {users.length === 0 && (
+                      <li className="p-8 text-center text-slate-500 text-sm">
+                        {language === 'fr' ? 'Aucun client trouvé.' : 'No customers found.'}
+                      </li>
+                    )}
+                  </ul>
+                </div>
+              </div>
+            )}
+          </div>
+          </>)}
+
+          {activeTab === 'users' && (
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+              <div className="p-6 border-b border-slate-100 flex justify-between items-center">
+                <h3 className="text-lg font-bold text-slate-800">{language === 'fr' ? 'Tous les clients' : 'All Customers'}</h3>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 text-slate-500 text-sm uppercase tracking-wider">
+                      <th className="px-6 py-4 font-medium">{language === 'fr' ? 'Nom' : 'Name'}</th>
+                      <th className="px-6 py-4 font-medium">Email</th>
+                      <th className="px-6 py-4 font-medium">{language === 'fr' ? 'Téléphone' : 'Phone'}</th>
+                      <th className="px-6 py-4 font-medium">{language === 'fr' ? 'Rôle' : 'Role'}</th>
+                      <th className="px-6 py-4 font-medium text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-sm">
+                    {users.map((u, i) => (
+                      <tr key={u._id || i} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-6 py-4 font-medium text-slate-800 flex items-center gap-3">
+                          <img src={`https://ui-avatars.com/api/?name=${u.firstName || 'User'}+${u.lastName || ''}&background=0D8ABC&color=fff`} className="w-8 h-8 rounded-full" alt="avatar"/>
+                          {u.firstName} {u.lastName}
+                        </td>
+                        <td className="px-6 py-4 text-slate-600">{u.email}</td>
+                        <td className="px-6 py-4 text-slate-500">{u.phone || '-'}</td>
+                        <td className="px-6 py-4">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            u.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-slate-100 text-slate-700'
+                          }`}>
+                            {u.role === 'admin' ? 'Admin' : 'User'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <button onClick={() => handleViewItem('user', u)} className="p-2 text-slate-400 hover:bg-slate-50 hover:text-slate-700 rounded-lg transition-colors" title={language === 'fr' ? 'Voir' : 'View'}>
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          <button onClick={() => handleDeleteUser(u._id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors" title={language === 'fr' ? 'Supprimer' : 'Delete'}>
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    {users.length === 0 && (
+                      <tr>
+                        <td colSpan={5} className="px-6 py-8 text-center text-slate-500">
+                          {language === 'fr' ? 'Aucun client trouvé.' : 'No customers found.'}
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'posts' && (
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+              <div className="p-6 border-b border-slate-100 flex justify-between items-center">
+                <h3 className="text-lg font-bold text-slate-800">{language === 'fr' ? 'Tous les articles' : 'All Posts'}</h3>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 text-slate-500 text-sm uppercase tracking-wider">
+                      <th className="px-6 py-4 font-medium w-16">{language === 'fr' ? 'Image' : 'Image'}</th>
+                      <th className="px-6 py-4 font-medium">{language === 'fr' ? 'Titre' : 'Title'}</th>
+                      <th className="px-6 py-4 font-medium">{language === 'fr' ? 'Auteur' : 'Author'}</th>
+                      <th className="px-6 py-4 font-medium">{language === 'fr' ? 'Date' : 'Date'}</th>
+                      <th className="px-6 py-4 font-medium">{language === 'fr' ? 'Statut' : 'Status'}</th>
+                      <th className="px-6 py-4 font-medium text-right">{language === 'fr' ? 'Actions' : 'Actions'}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-sm">
+                    {blogPosts.map((post) => (
+                      <tr key={post.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-6 py-4">
+                          {post.image ? (
+                            <div className="w-12 h-12 rounded-lg overflow-hidden border border-slate-200">
+                              <img src={post.image} alt={post.title} className="w-full h-full object-cover" />
+                            </div>
+                          ) : (
+                            <div className="w-12 h-12 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center">
+                              <span className="text-slate-400 text-xs">{language === 'fr' ? 'Pas d\'img' : 'No img'}</span>
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 font-medium text-slate-800 line-clamp-2 max-w-xs" title={post.title}>{post.title}</td>
+                        <td className="px-6 py-4 text-slate-600">{post.author}</td>
+                        <td className="px-6 py-4 text-slate-500">{post.date}</td>
+                        <td className="px-6 py-4">
+                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${post.status === 'Published' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-700'}`}>
+                            {post.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <button onClick={() => handleOpenModal(post)} className="text-slate-400 hover:text-blue-600 mx-2 transition-colors"><Edit3 className="w-4 h-4" /></button>
+                          <button onClick={() => handleDeletePost(post.id)} className="text-slate-400 hover:text-red-600 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+          {activeTab === 'shop' && (
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+              <div className="p-6 border-b border-slate-100 flex justify-between items-center">
+                <h3 className="text-lg font-bold text-slate-800">{language === 'fr' ? 'Produits Boutique' : 'Shop Products'}</h3>
+                {user?.role === 'admin' && (
+                  <button onClick={() => {
+                    setEditingProduct(null);
+                    setShopFormData({
+                      image: '', price: '', rating: 5.0, category: 'Tisanes', weight: '70g',
+                      content: { fr: { name: '', desc: '', specs: [''] }, en: { name: '', desc: '', specs: [''] } }
+                    });
+                    setIsShopModalOpen(true);
+                  }} className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors shadow-sm">
+                    <Plus className="w-4 h-4" />
+                    <span className="text-sm font-medium">{language === 'fr' ? 'Nouveau Produit' : 'New Product'}</span>
+                  </button>
+                )}
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 text-slate-500 text-sm uppercase tracking-wider">
+                      <th className="px-6 py-4 font-medium w-16">{language === 'fr' ? 'Image' : 'Image'}</th>
+                      <th className="px-6 py-4 font-medium">{language === 'fr' ? 'Nom' : 'Name'}</th>
+                      <th className="px-6 py-4 font-medium">{language === 'fr' ? 'Catégorie' : 'Category'}</th>
+                      <th className="px-6 py-4 font-medium">{language === 'fr' ? 'Prix' : 'Price'}</th>
+                      <th className="px-6 py-4 font-medium text-right">{language === 'fr' ? 'Actions' : 'Actions'}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-sm">
+                    {products.filter(p => !['tools', 'seeds', 'fertilizers', 'dryers'].includes(p.category?.toLowerCase())).map((product) => (
+                      <tr key={product.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-6 py-4">
+                          {product.image ? (
+                            <div className="w-12 h-12 rounded-lg overflow-hidden border border-slate-200">
+                              <img src={product.image} alt={product.content?.en?.name} className="w-full h-full object-cover" />
+                            </div>
+                          ) : (
+                            <div className="w-12 h-12 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center">
+                              <span className="text-slate-400 text-xs">{language === 'fr' ? 'Pas d\'img' : 'No img'}</span>
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 font-medium text-slate-800">
+                          {product.content?.[language]?.name || product.content?.fr?.name || 'Unnamed'}
+                        </td>
+                        <td className="px-6 py-4 text-slate-600">{product.category}</td>
+                        <td className="px-6 py-4 text-slate-600">{product.price}</td>
+                        <td className="px-6 py-4 text-right">
+                          <button onClick={() => handleViewItem('product', product)} className="text-slate-400 hover:text-slate-600 mx-2 transition-colors" title={language === 'fr' ? 'Voir' : 'View'}>
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          {user?.role === 'admin' && (
+                            <>
+                              <button onClick={() => {
+                                setEditingProduct(product);
+                                setShopFormData({
+                                  image: product.image,
+                                  price: product.price,
+                                  rating: product.rating,
+                                  category: product.category,
+                                  weight: product.weight,
+                                  content: {
+                                    fr: { name: product.content?.fr?.name || '', desc: product.content?.fr?.desc || '', specs: product.content?.fr?.specs || [''] },
+                                    en: { name: product.content?.en?.name || '', desc: product.content?.en?.desc || '', specs: product.content?.en?.specs || [''] }
+                                  }
+                                });
+                                setImagePreview(product.image);
+                                setIsShopModalOpen(true);
+                              }} className="text-slate-400 hover:text-blue-600 mx-2 transition-colors"><Edit3 className="w-4 h-4" /></button>
+                              <button onClick={() => handleDeleteProduct(product.id)} className="text-slate-400 hover:text-red-600 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                            </>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+          {activeTab === 'products' && (
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+              <div className="p-6 border-b border-slate-100 flex justify-between items-center">
+                <h3 className="text-lg font-bold text-slate-800">{language === 'fr' ? 'Équipements & Produits' : 'Equipment Products'}</h3>
+                {user?.role === 'admin' && (
+                  <button onClick={() => {
+                    setEditingProduct(null);
+                    setShopFormData({
+                      image: '', price: '', rating: 5.0, category: 'tools', weight: '',
+                      content: { fr: { name: '', desc: '', specs: [''] }, en: { name: '', desc: '', specs: [''] } }
+                    });
+                    setIsShopModalOpen(true);
+                  }} className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors shadow-sm">
+                    <Plus className="w-4 h-4" />
+                    <span className="text-sm font-medium">{language === 'fr' ? 'Nouvel Équipement' : 'New Equipment'}</span>
+                  </button>
+                )}
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 text-slate-500 text-sm uppercase tracking-wider">
+                      <th className="px-6 py-4 font-medium w-16">{language === 'fr' ? 'Image' : 'Image'}</th>
+                      <th className="px-6 py-4 font-medium">{language === 'fr' ? 'Nom' : 'Name'}</th>
+                      <th className="px-6 py-4 font-medium">{language === 'fr' ? 'Catégorie' : 'Category'}</th>
+                      <th className="px-6 py-4 font-medium">{language === 'fr' ? 'Prix' : 'Price'}</th>
+                      <th className="px-6 py-4 font-medium text-right">{language === 'fr' ? 'Actions' : 'Actions'}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-sm">
+                    {products.filter(p => ['tools', 'seeds', 'fertilizers', 'dryers'].includes(p.category?.toLowerCase())).map((product) => (
+                      <tr key={product.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-6 py-4">
+                          {product.image ? (
+                            <div className="w-12 h-12 rounded-lg overflow-hidden border border-slate-200">
+                              <img src={product.image} alt={product.content?.en?.name} className="w-full h-full object-cover" />
+                            </div>
+                          ) : (
+                            <div className="w-12 h-12 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center">
+                              <span className="text-slate-400 text-xs">{language === 'fr' ? 'Pas d\'img' : 'No img'}</span>
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 font-medium text-slate-800">
+                          {product.content?.[language]?.name || product.content?.fr?.name || 'Unnamed'}
+                        </td>
+                        <td className="px-6 py-4 text-slate-600">{product.category}</td>
+                        <td className="px-6 py-4 text-slate-600">{product.price}</td>
+                        <td className="px-6 py-4 text-right">
+                          <button onClick={() => handleViewItem('product', product)} className="text-slate-400 hover:text-slate-600 mx-2 transition-colors" title={language === 'fr' ? 'Voir' : 'View'}>
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          {user?.role === 'admin' && (
+                            <>
+                              <button onClick={() => {
+                                setEditingProduct(product);
+                                setShopFormData({
+                                  image: product.image,
+                                  price: product.price,
+                                  rating: product.rating || 5.0,
+                                  category: product.category,
+                                  weight: product.weight || '',
+                                  content: product.content || {
+                                    fr: { name: '', desc: '', specs: [''] },
+                                    en: { name: '', desc: '', specs: [''] }
+                                  }
+                                });
+                                setImagePreview(product.image);
+                                setIsShopModalOpen(true);
+                              }} className="text-slate-400 hover:text-blue-600 mx-2 transition-colors"><Edit3 className="w-4 h-4" /></button>
+                              <button onClick={() => handleDeleteProduct(product.id)} className="text-slate-400 hover:text-red-600 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                            </>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+          {activeTab === 'settings' && (
+            <div className="max-w-4xl mx-auto">
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden mb-6">
+                <div className="p-6 border-b border-slate-100">
+                  <h3 className="text-lg font-bold text-slate-800">{language === 'fr' ? 'Profil' : 'Profile'}</h3>
+                  <p className="text-sm text-slate-500">{language === 'fr' ? 'Gérez vos informations personnelles.' : 'Manage your personal information.'}</p>
+                </div>
+                <div className="p-6">
+                  <div className="flex items-center gap-6 mb-8">
+                    <div className="relative group">
+                      <img src={`https://ui-avatars.com/api/?name=${user?.firstName || 'Admin'}+${user?.lastName || 'User'}&background=0D8ABC&color=fff`} alt="Profile" className="w-24 h-24 rounded-full object-cover border-4 border-slate-50" />
+                      <div className="absolute inset-0 bg-slate-900/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                        <span className="text-white text-xs font-medium">{language === 'fr' ? 'Changer' : 'Change'}</span>
+                      </div>
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-slate-800 text-lg">{user?.firstName} {user?.lastName}</h4>
+                      <p className="text-slate-500">{user?.email}</p>
+                    </div>
+                  </div>
+                  
+                  <form className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{language === 'fr' ? 'Prénom' : 'First Name'}</label>
+                        <input type="text" className="w-full border border-slate-200 rounded-lg p-2.5 focus:ring-2 focus:ring-green-500 outline-none" defaultValue={user?.firstName} />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{language === 'fr' ? 'Nom' : 'Last Name'}</label>
+                        <input type="text" className="w-full border border-slate-200 rounded-lg p-2.5 focus:ring-2 focus:ring-green-500 outline-none" defaultValue={user?.lastName} />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
+                        <input type="email" className="w-full border border-slate-200 rounded-lg p-2.5 focus:ring-2 focus:ring-green-500 outline-none bg-slate-50 text-slate-500" defaultValue={user?.email} disabled />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{language === 'fr' ? 'Téléphone' : 'Phone'}</label>
+                        <input type="tel" className="w-full border border-slate-200 rounded-lg p-2.5 focus:ring-2 focus:ring-green-500 outline-none" defaultValue={user?.phone || ''} />
+                      </div>
+                    </div>
+                    <div className="flex justify-end">
+                      <button type="button" className="bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-lg transition-colors font-medium">
+                        {language === 'fr' ? 'Sauvegarder les modifications' : 'Save Changes'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden mb-6">
+                <div className="p-6 border-b border-slate-100">
+                  <h3 className="text-lg font-bold text-slate-800">{language === 'fr' ? 'Sécurité' : 'Security'}</h3>
+                  <p className="text-sm text-slate-500">{language === 'fr' ? 'Mettez à jour votre mot de passe et sécurisez votre compte.' : 'Update your password and secure your account.'}</p>
+                </div>
+                <div className="p-6">
+                  <form className="space-y-6">
+                    <div className="space-y-4 max-w-md">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{language === 'fr' ? 'Mot de passe actuel' : 'Current Password'}</label>
+                        <input type="password" className="w-full border border-slate-200 rounded-lg p-2.5 focus:ring-2 focus:ring-green-500 outline-none" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{language === 'fr' ? 'Nouveau mot de passe' : 'New Password'}</label>
+                        <input type="password" className="w-full border border-slate-200 rounded-lg p-2.5 focus:ring-2 focus:ring-green-500 outline-none" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{language === 'fr' ? 'Confirmer le nouveau mot de passe' : 'Confirm New Password'}</label>
+                        <input type="password" className="w-full border border-slate-200 rounded-lg p-2.5 focus:ring-2 focus:ring-green-500 outline-none" />
+                      </div>
+                    </div>
+                    <div className="flex justify-start">
+                      <button type="button" className="bg-slate-800 hover:bg-slate-900 text-white px-5 py-2.5 rounded-lg transition-colors font-medium">
+                        {language === 'fr' ? 'Changer le mot de passe' : 'Update Password'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                <div className="p-6 border-b border-slate-100">
+                  <h3 className="text-lg font-bold text-slate-800">{language === 'fr' ? 'Préférences' : 'Preferences'}</h3>
+                  <p className="text-sm text-slate-500">{language === 'fr' ? 'Gérez les paramètres de l\'application.' : 'Manage application settings.'}</p>
+                </div>
+                <div className="p-6 space-y-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-medium text-slate-800">{language === 'fr' ? 'Notifications par email' : 'Email Notifications'}</h4>
+                      <p className="text-sm text-slate-500">{language === 'fr' ? 'Recevoir des alertes pour les nouvelles commandes.' : 'Receive alerts for new orders.'}</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" className="sr-only peer" defaultChecked />
+                      <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                    </label>
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-medium text-slate-800">{language === 'fr' ? 'Authentification à deux facteurs' : 'Two-Factor Authentication'}</h4>
+                      <p className="text-sm text-slate-500">{language === 'fr' ? 'Ajouter une couche de sécurité supplémentaire.' : 'Add an extra layer of security.'}</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" className="sr-only peer" />
+                      <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+            </>
+          )}
+        </main>
+      </div>
+      
+      {/* Overlay for mobile sidebar */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-slate-900/50 z-40 lg:hidden"
+          onClick={toggleSidebar}
+        ></div>
+      )}
+
+      {/* Modal for adding/editing post */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-slate-100 flex justify-between items-center sticky top-0 bg-white z-10">
+              <h2 className="text-xl font-bold text-slate-800">
+                {editingPost ? (language === 'fr' ? 'Modifier l\'article' : 'Edit Post') : (language === 'fr' ? 'Nouvel Article' : 'New Post')}
+              </h2>
+              <button onClick={handleCloseModal} className="text-slate-400 hover:text-slate-600">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <form onSubmit={handleSavePost} className="p-6 space-y-4 text-left">
+              <div className="flex gap-6">
+                <div className="w-2/3 space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{language === 'fr' ? 'Titre' : 'Title'}</label>
+                    <input required type="text" className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-green-500 outline-none transition-shadow" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{language === 'fr' ? 'Extrait' : 'Excerpt'}</label>
+                    <textarea required className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-green-500 outline-none transition-shadow" value={formData.excerpt} onChange={e => setFormData({...formData, excerpt: e.target.value})} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{language === 'fr' ? 'Contenu' : 'Content'}</label>
+                    <textarea required rows={5} className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-green-500 outline-none transition-shadow" value={formData.content} onChange={e => setFormData({...formData, content: e.target.value})} />
+                  </div>
+                </div>
+                <div className="w-1/3 flex flex-col">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">{language === 'fr' ? 'Image à la Une' : 'Featured Image'}</label>
+                  
+                  <div className="w-full aspect-video rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center overflow-hidden relative group hover:border-green-500 transition-colors mb-3">
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
+                      onChange={e => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setSelectedFile(file);
+                          setImagePreview(URL.createObjectURL(file));
+                        }
+                      }} 
+                    />
+                    {imagePreview ? (
+                      <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="text-center text-slate-400 p-4">
+                        <Plus className="w-8 h-8 mx-auto mb-2 opacity-50 group-hover:text-green-500 transition-colors" />
+                        <span className="text-sm font-medium">{language === 'fr' ? 'Cliquez pour uploader une image' : 'Click to upload image'}</span>
+                      </div>
+                    )}
+                    {imagePreview && (
+                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                         <span className="text-white text-sm font-medium bg-black/30 px-3 py-1.5 rounded-full">{language === 'fr' ? 'Changer l\'image' : 'Change Image'}</span>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="mt-auto pt-4 border-t border-slate-100">
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{language === 'fr' ? 'URL de l\'image (optionnelle)' : 'Image URL (Optional fallback)'}</label>
+                    <input type="text" className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-green-500 outline-none transition-shadow text-sm" value={formData.image} onChange={e => { setFormData({...formData, image: e.target.value}); if(!selectedFile) setImagePreview(e.target.value); }} placeholder="https://..." />
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">{language === 'fr' ? 'Date' : 'Date'}</label>
+                  <input type="text" className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-green-500 outline-none transition-shadow" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">{language === 'fr' ? 'Temps de lecture' : 'Read Time'}</label>
+                  <input type="text" className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-green-500 outline-none transition-shadow" value={formData.readTime} onChange={e => setFormData({...formData, readTime: e.target.value})} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">{language === 'fr' ? 'Langue' : 'Language'}</label>
+                  <select className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-green-500 outline-none transition-shadow" value={formData.language} onChange={e => setFormData({...formData, language: e.target.value})}>
+                    <option value="fr">{language === 'fr' ? 'Français' : 'French'}</option>
+                    <option value="en">{language === 'fr' ? 'Anglais' : 'English'}</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">{language === 'fr' ? 'Auteur' : 'Author'}</label>
+                  <input type="text" className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-green-500 outline-none transition-shadow" value={formData.author} onChange={e => setFormData({...formData, author: e.target.value})} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">{language === 'fr' ? 'Rôle de l\'auteur' : 'Author Role'}</label>
+                  <input type="text" className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-green-500 outline-none transition-shadow" value={formData.authorRole} onChange={e => setFormData({...formData, authorRole: e.target.value})} />
+                </div>
+              </div>
+              <div className="pt-4 flex justify-end gap-3 border-t border-slate-100">
+                <button type="button" onClick={handleCloseModal} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">{language === 'fr' ? 'Annuler' : 'Cancel'}</button>
+                <button type="submit" className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">{language === 'fr' ? 'Enregistrer' : 'Save'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal for adding/editing product */}
+      {isShopModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-slate-100 flex justify-between items-center sticky top-0 bg-white z-10">
+              <h2 className="text-xl font-bold text-slate-800">
+                {editingProduct ? (language === 'fr' ? 'Modifier Produit' : 'Edit Product') : (language === 'fr' ? 'Nouveau Produit' : 'New Product')}
+              </h2>
+              <button onClick={handleCloseShopModal} className="text-slate-400 hover:text-slate-600">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <form onSubmit={handleSaveProduct} className="p-6 space-y-6 text-left">
+              <div className="flex gap-6">
+                <div className="w-1/3 flex flex-col">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">{language === 'fr' ? 'Image du Produit' : 'Product Image'}</label>
+                  <div className="w-full aspect-square rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center overflow-hidden relative group hover:border-green-500 transition-colors mb-3">
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
+                      onChange={e => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setSelectedFile(file);
+                          setImagePreview(URL.createObjectURL(file));
+                        }
+                      }} 
+                    />
+                    {imagePreview ? (
+                      <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="text-center text-slate-400 p-4">
+                        <Plus className="w-8 h-8 mx-auto mb-2 opacity-50 group-hover:text-green-500 transition-colors" />
+                        <span className="text-sm font-medium">{language === 'fr' ? 'Uploader Image' : 'Upload Image'}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 mt-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">{language === 'fr' ? 'Prix' : 'Price'}</label>
+                      <input required type="text" className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-green-500 outline-none" value={shopFormData.price} onChange={e => setShopFormData({...shopFormData, price: e.target.value})} placeholder="e.g. 5.00$" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">{language === 'fr' ? 'Poids' : 'Weight'}</label>
+                      <input type="text" className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-green-500 outline-none" value={shopFormData.weight} onChange={e => setShopFormData({...shopFormData, weight: e.target.value})} placeholder="e.g. 70g" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 mt-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">{language === 'fr' ? 'Catégorie' : 'Category'}</label>
+                      <select required className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-green-500 outline-none" value={shopFormData.category} onChange={e => setShopFormData({...shopFormData, category: e.target.value})}>
+                        {activeTab === 'products' ? (
+                          <>
+                            <option value="tools">Tools / Outils</option>
+                            <option value="seeds">Seeds / Semences</option>
+                            <option value="fertilizers">Fertilizers / Engrais</option>
+                            <option value="dryers">Dryers / Séchoirs</option>
+                          </>
+                        ) : (
+                          <>
+                            <option value="Tisanes">Tisanes</option>
+                            <option value="Farines">Farines</option>
+                            <option value="Miels">Miels</option>
+                            <option value="Huiles">Huiles</option>
+                            <option value="Poudres">Poudres</option>
+                            <option value="Savons">Savons</option>
+                          </>
+                        )}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">{language === 'fr' ? 'Note' : 'Rating'}</label>
+                      <input type="number" step="0.1" min="0" max="5" className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-green-500 outline-none" value={shopFormData.rating} onChange={e => setShopFormData({...shopFormData, rating: parseFloat(e.target.value)})} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Content Sections */}
+                <div className="w-2/3 flex flex-col gap-6">
+                  {/* French Content */}
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    <h4 className="font-bold text-slate-800 mb-3 flex items-center gap-2">🇫🇷 {language === 'fr' ? 'Contenu Français' : 'French Content'}</h4>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-xs font-medium text-slate-700 mb-1">{language === 'fr' ? 'Nom' : 'Name'}</label>
+                        <input required type="text" className="w-full border border-slate-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-green-500 outline-none" value={shopFormData.content.fr.name} onChange={e => setShopFormData({...shopFormData, content: {...shopFormData.content, fr: {...shopFormData.content.fr, name: e.target.value}}})} />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-slate-700 mb-1">{language === 'fr' ? 'Description' : 'Description'}</label>
+                        <textarea required rows={3} className="w-full border border-slate-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-green-500 outline-none" value={shopFormData.content.fr.desc} onChange={e => setShopFormData({...shopFormData, content: {...shopFormData.content, fr: {...shopFormData.content.fr, desc: e.target.value}}})} />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-slate-700 mb-1">{language === 'fr' ? 'Caractéristiques (séparées par virgule)' : 'Specs (comma separated)'}</label>
+                        <input type="text" className="w-full border border-slate-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-green-500 outline-none" value={shopFormData.content.fr.specs.join(', ')} onChange={e => setShopFormData({...shopFormData, content: {...shopFormData.content, fr: {...shopFormData.content.fr, specs: e.target.value.split(',').map(s => s.trim())}}})} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* English Content */}
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    <h4 className="font-bold text-slate-800 mb-3 flex items-center gap-2">🇬🇧 {language === 'fr' ? 'Contenu Anglais' : 'English Content'}</h4>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-xs font-medium text-slate-700 mb-1">{language === 'fr' ? 'Nom' : 'Name'}</label>
+                        <input required type="text" className="w-full border border-slate-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-green-500 outline-none" value={shopFormData.content.en.name} onChange={e => setShopFormData({...shopFormData, content: {...shopFormData.content, en: {...shopFormData.content.en, name: e.target.value}}})} />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-slate-700 mb-1">{language === 'fr' ? 'Description' : 'Description'}</label>
+                        <textarea required rows={3} className="w-full border border-slate-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-green-500 outline-none" value={shopFormData.content.en.desc} onChange={e => setShopFormData({...shopFormData, content: {...shopFormData.content, en: {...shopFormData.content.en, desc: e.target.value}}})} />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-slate-700 mb-1">{language === 'fr' ? 'Caractéristiques (séparées par virgule)' : 'Specs (comma separated)'}</label>
+                        <input type="text" className="w-full border border-slate-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-green-500 outline-none" value={shopFormData.content.en.specs.join(', ')} onChange={e => setShopFormData({...shopFormData, content: {...shopFormData.content, en: {...shopFormData.content.en, specs: e.target.value.split(',').map(s => s.trim())}}})} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-4 flex justify-end gap-3 border-t border-slate-100">
+                <button type="button" onClick={handleCloseShopModal} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">{language === 'fr' ? 'Annuler' : 'Cancel'}</button>
+                <button type="submit" className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">{language === 'fr' ? 'Enregistrer' : 'Save'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* View Modal */}
+      {isViewModalOpen && viewingItem && (
+        <div className="fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden">
+            <div className="p-6 border-b border-slate-100 flex justify-between items-center">
+              <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                <Eye className="w-5 h-5 text-green-600" />
+                {language === 'fr' ? 'Détails' : 'Details'}
+              </h2>
+              <button onClick={handleCloseViewModal} className="text-slate-400 hover:text-slate-600">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 max-h-[70vh] overflow-y-auto">
+              {viewingItem.type === 'user' && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-4 mb-6">
+                    <img src={`https://ui-avatars.com/api/?name=${viewingItem.data.firstName || 'U'}+${viewingItem.data.lastName || ''}&background=0D8ABC&color=fff&size=100`} alt="avatar" className="w-20 h-20 rounded-full shadow-sm" />
+                    <div>
+                      <h3 className="text-2xl font-bold text-slate-800">{viewingItem.data.firstName} {viewingItem.data.lastName}</h3>
+                      <span className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider inline-block mt-2 ${
+                        viewingItem.data.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-slate-100 text-slate-600'
+                      }`}>
+                        {viewingItem.data.role === 'admin' ? 'Admin' : 'User'}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-slate-50 p-4 rounded-xl">
+                      <p className="text-xs text-slate-500 font-medium uppercase mb-1">Email</p>
+                      <p className="text-slate-800 font-medium">{viewingItem.data.email}</p>
+                    </div>
+                    <div className="bg-slate-50 p-4 rounded-xl">
+                      <p className="text-xs text-slate-500 font-medium uppercase mb-1">{language === 'fr' ? 'Téléphone' : 'Phone'}</p>
+                      <p className="text-slate-800 font-medium">{viewingItem.data.phone || '-'}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {viewingItem.type === 'product' && (
+                <div className="space-y-6">
+                  {viewingItem.data.image && (
+                    <div className="w-full h-48 rounded-xl overflow-hidden mb-6 bg-slate-50 border border-slate-100">
+                      <img src={viewingItem.data.image} alt="product" className="w-full h-full object-contain" />
+                    </div>
+                  )}
+                  <div>
+                    <h3 className="text-2xl font-bold text-slate-800 mb-2">
+                      {viewingItem.data.content?.[language]?.name || viewingItem.data.content?.fr?.name || 'Unnamed Product'}
+                    </h3>
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      <span className="px-3 py-1 bg-green-50 text-green-700 rounded-full text-sm font-medium">{viewingItem.data.category}</span>
+                      <span className="px-3 py-1 bg-slate-50 text-slate-700 rounded-full text-sm font-medium font-mono">{viewingItem.data.price}</span>
+                      {viewingItem.data.weight && <span className="px-3 py-1 bg-slate-50 text-slate-600 rounded-full text-sm">{viewingItem.data.weight}</span>}
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div className="bg-slate-50 p-4 rounded-xl">
+                      <p className="text-xs text-slate-500 font-medium uppercase mb-2">Description ({language === 'fr' ? 'FR' : 'EN'})</p>
+                      <p className="text-slate-700 text-sm leading-relaxed">
+                        {viewingItem.data.content?.[language]?.desc || viewingItem.data.content?.fr?.desc || '-'}
+                      </p>
+                    </div>
+                    {(viewingItem.data.content?.[language]?.specs || viewingItem.data.content?.fr?.specs)?.length > 0 && (
+                      <div className="bg-slate-50 p-4 rounded-xl">
+                        <p className="text-xs text-slate-500 font-medium uppercase mb-2">{language === 'fr' ? 'Caractéristiques' : 'Specifications'}</p>
+                        <ul className="list-disc list-inside text-sm text-slate-700 space-y-1 ml-2">
+                          {(viewingItem.data.content?.[language]?.specs || viewingItem.data.content?.fr?.specs).map((spec: string, idx: number) => (
+                            <li key={idx}>{spec}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="p-6 border-t border-slate-100 flex justify-end">
+              <button onClick={handleCloseViewModal} className="px-6 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition-colors">
+                {language === 'fr' ? 'Fermer' : 'Close'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default DashboardPage;

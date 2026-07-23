@@ -3,7 +3,7 @@ import { ChevronUp } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 const BackToTop: React.FC = () => {
-  const { isChatOpen } = useApp();
+  const { isChatOpen, currentPath } = useApp();
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
@@ -26,7 +26,7 @@ const BackToTop: React.FC = () => {
     });
   };
 
-  if (!isVisible || isChatOpen) return null;
+  if (!isVisible || isChatOpen || currentPath === '/dashboard') return null;
 
   return (
     <button

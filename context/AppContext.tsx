@@ -12,6 +12,10 @@ interface AppContextType {
   navigateTo: (path: string) => void;
   isChatOpen: boolean;
   setChatOpen: (open: boolean) => void;
+  token: string | null;
+  user: any;
+  setAuth: (user: any, token: string) => void;
+  logout: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -22,6 +26,23 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [language, setLanguage] = useState<Language>('fr');
   const [currentPath, setCurrentPath] = useState('/');
   const [isChatOpen, setChatOpen] = useState(false);
+  const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
+  const [user, setUser] = useState<any>(localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user') as string) : null);
+
+  const setAuth = (userData: any, authToken: string) => {
+    setToken(authToken);
+    setUser(userData);
+    localStorage.setItem('token', authToken);
+    localStorage.setItem('user', JSON.stringify(userData));
+  };
+
+  const logout = () => {
+    setToken(null);
+    setUser(null);
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    navigateTo('/');
+  };
 
   useEffect(() => {
     // Force white background always
@@ -54,7 +75,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       currentPath,
       navigateTo,
       isChatOpen,
-      setChatOpen
+      setChatOpen,
+      token,
+      user,
+      setAuth,
+      logout
     }}>
       {children}
     </AppContext.Provider>

@@ -2,7 +2,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { Star, Plus, MessageCircle, Info, X, CheckCircle2, ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
-import { translations, getTranslatedProducts } from '../translations';
 import ProductCardSkeleton from './ProductCardSkeleton';
 
 interface ShopPageProps { language: 'fr' | 'en'; }
@@ -28,16 +27,28 @@ const ShopPage: React.FC<ShopPageProps> = ({ language }) => {
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [modalImageIdx, setModalImageIdx] = useState(0);
   const [currentImage, setCurrentImage] = useState(0);
+  const [products, setProducts] = useState<any[]>([]);
   const [productsLoading, setProductsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setProductsLoading(true);
+        const res = await fetch('http://localhost:3001/products');
+        const data = await res.json();
+        setProducts(data);
+      } catch (error) {
+        console.error('Failed to fetch products', error);
+      } finally {
+        setProductsLoading(false);
+      }
+    };
+    fetchProducts();
+  }, []);
 
   useEffect(() => {
     if (selectedProduct) setModalImageIdx(0);
   }, [selectedProduct]);
-
-  useEffect(() => {
-    const t = setTimeout(() => setProductsLoading(false), 600);
-    return () => clearTimeout(t);
-  }, []);
 
   const promoImages = [
     "https://res.cloudinary.com/drsd8adkq/image/upload/v1769361165/berakah-2_p3d2uv.png", // Basket
@@ -55,8 +66,15 @@ const ShopPage: React.FC<ShopPageProps> = ({ language }) => {
     return () => clearInterval(timer);
   }, []);
   
-  // Utilisation de la structure optimisée avec traductions imbriquées
-  const spiceProducts = getTranslatedProducts(language);
+  const translatedProducts = products.map((p) => {
+    const content = p.content?.[language] || p.content?.['fr'] || {};
+    return {
+      ...p,
+      name: content.name || p.name,
+      desc: content.desc || p.desc,
+      specs: content.specs || p.specs,
+    };
+  });
 
   const categories = [
     { id: 'all', label: language === 'fr' ? 'Tout' : 'All' },
@@ -76,8 +94,8 @@ const ShopPage: React.FC<ShopPageProps> = ({ language }) => {
   };
 
   const filteredItems = filter === 'all' 
-    ? spiceProducts 
-    : spiceProducts.filter((item: any) => item.category === filter);
+    ? translatedProducts 
+    : translatedProducts.filter((item: any) => item.category === filter);
 
   return (
     <div className="pt-20 sm:pt-24 md:pt-28 lg:pt-32 pb-16 sm:pb-24 md:pb-32 bg-white">

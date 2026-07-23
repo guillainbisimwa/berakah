@@ -17,25 +17,27 @@ export interface BlogPost {
   authorRole: string;
 }
 
-export const getPosts = (lang: string): BlogPost[] => [
-  {
-    id: '1',
-    title: lang === 'fr' ? "BERAKAH BUSINESS parmi les 5 meilleurs pitchs L-Impact Saison 2 à Lubumbashi" : "BERAKAH BUSINESS among the Top 5 Pitches L-Impact Season 2 in Lubumbashi",
-    excerpt: lang === 'fr' ? "Berakah Business, portée par l'entrepreneure dynamique Solange Elvirah, se distingue dans l'écosystème entrepreneurial de Lubumbashi et fait partie des 5 meilleurs pitchs du programme L-Impact." : "Berakah Business, led by dynamic entrepreneur Solange Elvirah, stands out in Lubumbashi's entrepreneurial ecosystem and is among the top 5 pitches in the L-Impact program.",
-    content: lang === 'fr' 
-      ? "Berakah Business est cette entreprise portée par une femme entrepreneur dynamique au nom de Solange Elvirah qui œuvre dans l'agroalimentaire pour valoriser davantage les produits du terroir. Cette entreprise a de plus en plus de l'influence dans l'écosystème entrepreneurial de Lubumbashi et les différents prix engrangés n'en sont que la preuve. Elle fait partie des entreprises qui ont obtenu divers appuis et soutiens pour son émergence.\n\nParticipant à plusieurs foires, salons, colloques, etc. pour faire connaitre ses produits ; sa promotrice est parfois invitée à intervenir dans plusieurs évènements pour témoigner de son parcours et inspirer les autres entrepreneurs, en particulier les femmes. Active sur les réseaux sociaux parmi lesquelles TikTok où l'entreprise se déploie quotidiennement à faire connaitre ses produits.\n\nActuellement, Berakah Business propose du thé à base des épices divers répondant à divers besoins digestifs de ses consommateurs ; des épices en poudre ; du miel ; de la farine de sorgho, des produits capillaires ; du savon ; tous ces produits en général distribués, sous la marque La Saveur, sont bien présents dans plusieurs points de vente de la ville de Lubumbashi, Bukavu, Kolwezi, Kinshasa, etc.\n\nCe n'est que normal que cette entreprise ait été plébiscitée parmi les 5 meilleurs pitchs pour le récent programme L-Impact ; un programme d'incubation de 6 mois qui renforce les capacités des entrepreneurs pour mieux les professionnaliser.\n\nBerakah Business, La Saveur ainsi que sa promotrice ne peuvent que continuer à se déployer davantage pour plus d'impact au sein du secteur entrepreneurial et la SADEK-GIE ne peut que leur souhaiter un franc succès.\n\nLa Synergie d'Appui au Développement de l'Entrepreneuriat au Kongo en sigle SADEK–GIE/ RDC, est un Groupement d'intérêt Economique, un réseau d'accompagnement des entrepreneurs de toute catégorie initié pour contribuer à la croissance économique et la création d'emplois en République Démocratique du Congo à travers les entrepreneurs aspirants ou en activités : hommes, femmes, jeunes, etc. dans les pays de la zone SADC ; ce, depuis 2016 selon les expériences des entrepreneurs de divers ressorts et backgrounds.\n\nSource: https://www.sadek-rdc.com/2024/07/08/berakah-business-parmi-les-5-meilleurs-pitchs-l-impact-saison-2-a-lubumbashi/"
-      : "Berakah Business is this company led by a dynamic woman entrepreneur named Solange Elvirah who works in agri-food to further enhance local products. This company has an increasing influence in Lubumbashi's entrepreneurial ecosystem, and the various awards won are proof of this. It is among the companies that have received various support and backing for its emergence.\n\nParticipating in several fairs, trade shows, conferences, etc. to promote her products; her promoter is sometimes invited to speak at various events to share her journey and inspire other entrepreneurs, especially women. Active on social media including TikTok where the company works daily to promote its products.\n\nCurrently, Berakah Business offers tea based on various spices responding to various digestive needs of its consumers; powdered spices; honey; sorghum flour, hair products; soap; all these products in general distributed under the brand La Saveur, are well present in several points of sale in the cities of Lubumbashi, Bukavu, Kolwezi, Kinshasa, etc.\n\nIt is only natural that this company was selected among the top 5 pitches for the recent L-Impact program; a 6-month incubation program that strengthens entrepreneurs' capacities to better professionalize them.\n\nBerakah Business, La Saveur and its promoter can only continue to expand further for more impact within the entrepreneurial sector and SADEK-GIE can only wish them great success.\n\nThe Synergy for Supporting Entrepreneurship Development in Kongo, abbreviated SADEK–GIE/ DRC, is an Economic Interest Group, a network supporting entrepreneurs of all categories initiated to contribute to economic growth and job creation in the Democratic Republic of Congo through aspiring or active entrepreneurs: men, women, youth, etc. in SADC zone countries; this, since 2016 according to the experiences of entrepreneurs from various backgrounds.\n\nSource: https://www.sadek-rdc.com/2024/07/08/berakah-business-parmi-les-5-meilleurs-pitchs-l-impact-saison-2-a-lubumbashi/",
-    image: "/berakah-gallery/1769287540891.jpg",
-    date: "08 Juillet 2024",
-    readTime: "6 min",
-    author: lang === 'fr' ? "Équipe SADEK-GIE/ RDC" : "SADEK-GIE/ DRC Team",
-    authorRole: lang === 'fr' ? "Réseau d'Accompagnement des Entrepreneurs" : "Entrepreneur Support Network"
-  }
-];
+export const getPosts = (lang: string): BlogPost[] => [];
 
 const BlogPage: React.FC<BlogPageProps> = ({ language }) => {
   const { navigateTo } = useApp();
-  const posts = getPosts(language);
+  const [posts, setPosts] = React.useState<BlogPost[]>([]);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    const fetchPosts = async () => {
+      try {
+        const res = await fetch(`http://localhost:3001/blog?language=${language}`);
+        const data = await res.json();
+        setPosts(data);
+      } catch (err) {
+        console.error('Failed to fetch posts', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPosts();
+  }, [language]);
 
   const handlePostClick = (postId: string) => {
     navigateTo(`/blog/${postId}`);
