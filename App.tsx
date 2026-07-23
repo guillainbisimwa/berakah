@@ -22,9 +22,13 @@ import ContactsPage from './components/ContactsPage';
 import DashboardPage from './components/DashboardPage';
 import { translations } from './translations';
 
+import AuthPage from './components/AuthPage';
+
 const App: React.FC = () => {
   const [activePage, setActivePage] = useState('home');
   const [language, setLanguage] = useState<'fr' | 'en'>('fr');
+  const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
+  const [user, setUser] = useState<any>(null);
 
   const t = translations[language];
 
@@ -39,6 +43,20 @@ const App: React.FC = () => {
     document.body.style.backgroundColor = '#ffffff';
     document.body.style.color = '#1a3a2a';
   }, []);
+
+  const handleAuthSuccess = (userData: any, authToken: string) => {
+    setToken(authToken);
+    setUser(userData);
+    localStorage.setItem('token', authToken);
+    setActivePage('dashboard');
+  };
+
+  const handleLogout = () => {
+    setToken(null);
+    setUser(null);
+    localStorage.removeItem('token');
+    setActivePage('home');
+  };
 
   const renderContent = () => {
     switch (activePage) {
@@ -67,8 +85,14 @@ const App: React.FC = () => {
         return <ShopPage language={language} />;
       case 'contacts':
         return <ContactsPage language={language} />;
+      case 'auth':
+        return <AuthPage language={language} onAuthSuccess={handleAuthSuccess} />;
       case 'dashboard':
-        return <DashboardPage language={language} />;
+        if (!token) {
+          setActivePage('auth');
+          return null;
+        }
+        return <DashboardPage language={language} user={user} onLogout={handleLogout} />;
       default:
         return <Hero language={language} />;
     }
