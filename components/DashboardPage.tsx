@@ -24,10 +24,12 @@ import {
 
 interface DashboardPageProps {
   language: 'fr' | 'en';
+  user?: any;
+  onLogout?: () => void;
 }
 
-const DashboardPage: React.FC<DashboardPageProps> = ({ language }) => {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+const DashboardPage: React.FC<DashboardPageProps> = ({ language, user, onLogout }) => {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const [dashboardData, setDashboardData] = useState<any>(null);
   const [blogPosts, setBlogPosts] = useState<any[]>([]);
@@ -307,9 +309,12 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language }) => {
         </div>
 
         <div className="p-4 border-t border-slate-100">
-          <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-red-50 hover:text-red-600 transition-colors">
-            <LogOut className="w-5 h-5 text-slate-400" />
-            <span>{language === 'fr' ? 'Déconnexion' : 'Logout'}</span>
+          <button 
+            onClick={onLogout}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-red-50 hover:text-red-600 transition-colors"
+          >
+            <LogOut className="w-5 h-5 text-slate-400 group-hover:text-red-500 transition-colors" />
+            <span className="font-medium">{language === 'fr' ? 'Déconnexion' : 'Logout'}</span>
           </button>
         </div>
       </aside>
@@ -348,17 +353,19 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language }) => {
               
               <div className="h-8 w-px bg-slate-200 mx-1"></div>
               
-              <button className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-                <img 
-                  src="https://ui-avatars.com/api/?name=Admin+User&background=0D8ABC&color=fff" 
-                  alt="Admin User" 
-                  className="w-8 h-8 rounded-full border-2 border-white shadow-sm"
-                />
-                <div className="hidden md:block text-left">
-                  <p className="text-sm font-medium text-slate-700 leading-none">Admin User</p>
-                  <p className="text-xs text-slate-500 mt-1">{language === 'fr' ? 'Administrateur' : 'Administrator'}</p>
+              <div className="flex items-center gap-3 pl-4 border-l border-slate-200">
+                <div className="w-9 h-9 rounded-full bg-slate-200 overflow-hidden border-2 border-white shadow-sm">
+                  <img 
+                    src={`https://ui-avatars.com/api/?name=${user?.firstName || 'Admin'}+${user?.lastName || 'User'}&background=0D8ABC&color=fff`}
+                    alt={user?.firstName || "Admin User"} 
+                    className="w-full h-full object-cover"
+                  />
                 </div>
-              </button>
+                <div className="hidden md:block">
+                  <p className="text-sm font-medium text-slate-700 leading-none">{user?.firstName} {user?.lastName}</p>
+                  <p className="text-xs text-slate-500 mt-1">{user?.role === 'admin' ? (language === 'fr' ? 'Administrateur' : 'Administrator') : (language === 'fr' ? 'Utilisateur' : 'User')}</p>
+                </div>
+              </div>
             </div>
           </div>
         </header>
@@ -789,6 +796,116 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language }) => {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            </div>
+          )}
+          {activeTab === 'settings' && (
+            <div className="max-w-4xl mx-auto">
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden mb-6">
+                <div className="p-6 border-b border-slate-100">
+                  <h3 className="text-lg font-bold text-slate-800">{language === 'fr' ? 'Profil' : 'Profile'}</h3>
+                  <p className="text-sm text-slate-500">{language === 'fr' ? 'Gérez vos informations personnelles.' : 'Manage your personal information.'}</p>
+                </div>
+                <div className="p-6">
+                  <div className="flex items-center gap-6 mb-8">
+                    <div className="relative group">
+                      <img src={`https://ui-avatars.com/api/?name=${user?.firstName || 'Admin'}+${user?.lastName || 'User'}&background=0D8ABC&color=fff`} alt="Profile" className="w-24 h-24 rounded-full object-cover border-4 border-slate-50" />
+                      <div className="absolute inset-0 bg-slate-900/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                        <span className="text-white text-xs font-medium">{language === 'fr' ? 'Changer' : 'Change'}</span>
+                      </div>
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-slate-800 text-lg">{user?.firstName} {user?.lastName}</h4>
+                      <p className="text-slate-500">{user?.email}</p>
+                    </div>
+                  </div>
+                  
+                  <form className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{language === 'fr' ? 'Prénom' : 'First Name'}</label>
+                        <input type="text" className="w-full border border-slate-200 rounded-lg p-2.5 focus:ring-2 focus:ring-green-500 outline-none" defaultValue={user?.firstName} />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{language === 'fr' ? 'Nom' : 'Last Name'}</label>
+                        <input type="text" className="w-full border border-slate-200 rounded-lg p-2.5 focus:ring-2 focus:ring-green-500 outline-none" defaultValue={user?.lastName} />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
+                        <input type="email" className="w-full border border-slate-200 rounded-lg p-2.5 focus:ring-2 focus:ring-green-500 outline-none bg-slate-50 text-slate-500" defaultValue={user?.email} disabled />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{language === 'fr' ? 'Téléphone' : 'Phone'}</label>
+                        <input type="tel" className="w-full border border-slate-200 rounded-lg p-2.5 focus:ring-2 focus:ring-green-500 outline-none" defaultValue={user?.phone || ''} />
+                      </div>
+                    </div>
+                    <div className="flex justify-end">
+                      <button type="button" className="bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-lg transition-colors font-medium">
+                        {language === 'fr' ? 'Sauvegarder les modifications' : 'Save Changes'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden mb-6">
+                <div className="p-6 border-b border-slate-100">
+                  <h3 className="text-lg font-bold text-slate-800">{language === 'fr' ? 'Sécurité' : 'Security'}</h3>
+                  <p className="text-sm text-slate-500">{language === 'fr' ? 'Mettez à jour votre mot de passe et sécurisez votre compte.' : 'Update your password and secure your account.'}</p>
+                </div>
+                <div className="p-6">
+                  <form className="space-y-6">
+                    <div className="space-y-4 max-w-md">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{language === 'fr' ? 'Mot de passe actuel' : 'Current Password'}</label>
+                        <input type="password" className="w-full border border-slate-200 rounded-lg p-2.5 focus:ring-2 focus:ring-green-500 outline-none" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{language === 'fr' ? 'Nouveau mot de passe' : 'New Password'}</label>
+                        <input type="password" className="w-full border border-slate-200 rounded-lg p-2.5 focus:ring-2 focus:ring-green-500 outline-none" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{language === 'fr' ? 'Confirmer le nouveau mot de passe' : 'Confirm New Password'}</label>
+                        <input type="password" className="w-full border border-slate-200 rounded-lg p-2.5 focus:ring-2 focus:ring-green-500 outline-none" />
+                      </div>
+                    </div>
+                    <div className="flex justify-start">
+                      <button type="button" className="bg-slate-800 hover:bg-slate-900 text-white px-5 py-2.5 rounded-lg transition-colors font-medium">
+                        {language === 'fr' ? 'Changer le mot de passe' : 'Update Password'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                <div className="p-6 border-b border-slate-100">
+                  <h3 className="text-lg font-bold text-slate-800">{language === 'fr' ? 'Préférences' : 'Preferences'}</h3>
+                  <p className="text-sm text-slate-500">{language === 'fr' ? 'Gérez les paramètres de l\'application.' : 'Manage application settings.'}</p>
+                </div>
+                <div className="p-6 space-y-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-medium text-slate-800">{language === 'fr' ? 'Notifications par email' : 'Email Notifications'}</h4>
+                      <p className="text-sm text-slate-500">{language === 'fr' ? 'Recevoir des alertes pour les nouvelles commandes.' : 'Receive alerts for new orders.'}</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" className="sr-only peer" defaultChecked />
+                      <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                    </label>
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-medium text-slate-800">{language === 'fr' ? 'Authentification à deux facteurs' : 'Two-Factor Authentication'}</h4>
+                      <p className="text-sm text-slate-500">{language === 'fr' ? 'Ajouter une couche de sécurité supplémentaire.' : 'Add an extra layer of security.'}</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" className="sr-only peer" />
+                      <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                    </label>
+                  </div>
+                </div>
               </div>
             </div>
           )}
