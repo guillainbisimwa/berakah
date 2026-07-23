@@ -30,13 +30,13 @@ export class Product {
   @Prop({ required: true })
   price: string;
 
-  @Prop({ required: true })
+  @Prop({ required: false })
   rating: number;
 
   @Prop({ required: true })
   category: string;
 
-  @Prop({ required: true })
+  @Prop({ required: false })
   weight: string;
 
   @Prop({ type: Content, required: true })
