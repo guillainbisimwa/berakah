@@ -484,6 +484,98 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language, user, onLogout 
               </div>
             ))}
           </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Recent Products */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex flex-col">
+              <div className="p-6 border-b border-slate-100 flex justify-between items-center">
+                <div>
+                  <h3 className="text-lg font-bold text-slate-800">{language === 'fr' ? 'Derniers Produits' : 'Recent Products'}</h3>
+                  <p className="text-sm text-slate-500">{language === 'fr' ? 'Récemment ajoutés au catalogue' : 'Recently added to catalog'}</p>
+                </div>
+                <button onClick={() => setActiveTab('products')} className="text-sm font-medium text-green-600 hover:text-green-700 flex items-center gap-1">
+                  {language === 'fr' ? 'Tout voir' : 'View all'} <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="p-0 flex-1">
+                <ul className="divide-y divide-slate-100">
+                  {products.slice(-4).reverse().map((product, i) => (
+                    <li key={product.id || i} className="p-4 hover:bg-slate-50 transition-colors flex items-center gap-4">
+                      {product.image ? (
+                        <div className="w-14 h-14 rounded-xl overflow-hidden border border-slate-200 shrink-0">
+                          <img src={product.image} alt={product.content?.en?.name} className="w-full h-full object-cover" />
+                        </div>
+                      ) : (
+                        <div className="w-14 h-14 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0">
+                          <Package className="w-6 h-6 text-slate-400" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-slate-800 truncate">
+                          {product.content?.[language]?.name || product.content?.fr?.name || 'Unnamed Product'}
+                        </p>
+                        <p className="text-xs text-slate-500 truncate mt-0.5">{product.category}</p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className="text-sm font-bold text-green-600">{product.price}</span>
+                      </div>
+                    </li>
+                  ))}
+                  {products.length === 0 && (
+                    <li className="p-8 text-center text-slate-500 text-sm">
+                      {language === 'fr' ? 'Aucun produit trouvé.' : 'No products found.'}
+                    </li>
+                  )}
+                </ul>
+              </div>
+            </div>
+
+            {/* Recent Customers */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex flex-col">
+              <div className="p-6 border-b border-slate-100 flex justify-between items-center">
+                <div>
+                  <h3 className="text-lg font-bold text-slate-800">{language === 'fr' ? 'Nouveaux Clients' : 'New Customers'}</h3>
+                  <p className="text-sm text-slate-500">{language === 'fr' ? 'Inscriptions récentes' : 'Recently registered'}</p>
+                </div>
+                <button onClick={() => setActiveTab('users')} className="text-sm font-medium text-green-600 hover:text-green-700 flex items-center gap-1">
+                  {language === 'fr' ? 'Tout voir' : 'View all'} <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="p-0 flex-1">
+                <ul className="divide-y divide-slate-100">
+                  {users.slice(-5).reverse().map((user, i) => (
+                    <li key={user._id || i} className="p-4 hover:bg-slate-50 transition-colors flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-sm shrink-0 bg-slate-100">
+                        <img 
+                          src={`https://ui-avatars.com/api/?name=${user.firstName || 'U'}+${user.lastName || ''}&background=0D8ABC&color=fff`} 
+                          alt="avatar" 
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-slate-800 truncate">
+                          {user.firstName} {user.lastName}
+                        </p>
+                        <p className="text-xs text-slate-500 truncate mt-0.5">{user.email}</p>
+                      </div>
+                      <div className="shrink-0">
+                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                          user.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-slate-100 text-slate-600'
+                        }`}>
+                          {user.role === 'admin' ? 'Admin' : 'User'}
+                        </span>
+                      </div>
+                    </li>
+                  ))}
+                  {users.length === 0 && (
+                    <li className="p-8 text-center text-slate-500 text-sm">
+                      {language === 'fr' ? 'Aucun client trouvé.' : 'No customers found.'}
+                    </li>
+                  )}
+                </ul>
+              </div>
+            </div>
+          </div>
           </>)}
 
           {activeTab === 'users' && (
