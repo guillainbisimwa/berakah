@@ -63,8 +63,17 @@ const AuthPage: React.FC<AuthPageProps> = ({ language, onAuthSuccess }) => {
   };
 
   return (
-    <div className="min-h-screen pt-24 pb-16 flex items-center justify-center bg-slate-50 px-4">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl overflow-hidden">
+    <div 
+      className="min-h-screen pt-24 pb-16 flex items-center justify-center px-4 relative"
+      style={{
+        backgroundImage: 'url("https://res.cloudinary.com/drsd8adkq/image/upload/v1769503463/farm_ylwshl.jpg")',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed'
+      }}
+    >
+      <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm z-0"></div>
+      <div className="max-w-md w-full bg-white rounded-2xl shadow-2xl overflow-hidden z-10 relative">
         <div className="p-8 text-center bg-agro-dark text-white">
           <h2 className="text-2xl font-bold mb-2">
             {isLogin 
