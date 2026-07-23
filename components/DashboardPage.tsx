@@ -34,6 +34,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language, user, onLogout 
   const [dashboardData, setDashboardData] = useState<any>(null);
   const [blogPosts, setBlogPosts] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -175,6 +176,16 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language, user, onLogout 
     }
   };
 
+  const fetchUsers = async () => {
+    try {
+      const response = await fetch('http://localhost:3001/users');
+      const data = await response.json();
+      setUsers(data);
+    } catch (error) {
+      console.error('Failed to fetch users', error);
+    }
+  };
+
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
@@ -190,6 +201,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language, user, onLogout 
 
     fetchDashboardData();
     fetchProducts();
+    fetchUsers();
   }, []);
 
   useEffect(() => {
@@ -214,6 +226,17 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language, user, onLogout 
         fetchProducts(); // Refresh list
       } catch (err) {
         console.error('Failed to delete product:', err);
+      }
+    }
+  };
+
+  const handleDeleteUser = async (id: string) => {
+    if (window.confirm(language === 'fr' ? 'Êtes-vous sûr de vouloir supprimer ce client ?' : 'Are you sure you want to delete this client?')) {
+      try {
+        await fetch(`http://localhost:3001/users/${id}`, { method: 'DELETE' });
+        fetchUsers(); // Refresh list
+      } catch (err) {
+        console.error('Failed to delete user:', err);
       }
     }
   };
@@ -604,6 +627,58 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language, user, onLogout 
             </div>
           </div>
           </>)}
+
+          {activeTab === 'users' && (
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+              <div className="p-6 border-b border-slate-100 flex justify-between items-center">
+                <h3 className="text-lg font-bold text-slate-800">{language === 'fr' ? 'Tous les clients' : 'All Customers'}</h3>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 text-slate-500 text-sm uppercase tracking-wider">
+                      <th className="px-6 py-4 font-medium">{language === 'fr' ? 'Nom' : 'Name'}</th>
+                      <th className="px-6 py-4 font-medium">Email</th>
+                      <th className="px-6 py-4 font-medium">{language === 'fr' ? 'Téléphone' : 'Phone'}</th>
+                      <th className="px-6 py-4 font-medium">{language === 'fr' ? 'Rôle' : 'Role'}</th>
+                      <th className="px-6 py-4 font-medium text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-sm">
+                    {users.map((u, i) => (
+                      <tr key={u._id || i} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-6 py-4 font-medium text-slate-800 flex items-center gap-3">
+                          <img src={`https://ui-avatars.com/api/?name=${u.firstName || 'User'}+${u.lastName || ''}&background=0D8ABC&color=fff`} className="w-8 h-8 rounded-full" alt="avatar"/>
+                          {u.firstName} {u.lastName}
+                        </td>
+                        <td className="px-6 py-4 text-slate-600">{u.email}</td>
+                        <td className="px-6 py-4 text-slate-500">{u.phone || '-'}</td>
+                        <td className="px-6 py-4">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            u.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-slate-100 text-slate-700'
+                          }`}>
+                            {u.role === 'admin' ? 'Admin' : 'User'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <button onClick={() => handleDeleteUser(u._id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors" title={language === 'fr' ? 'Supprimer' : 'Delete'}>
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    {users.length === 0 && (
+                      <tr>
+                        <td colSpan={5} className="px-6 py-8 text-center text-slate-500">
+                          {language === 'fr' ? 'Aucun client trouvé.' : 'No customers found.'}
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
           {activeTab === 'posts' && (
             <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
