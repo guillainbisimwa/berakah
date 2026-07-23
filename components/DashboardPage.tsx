@@ -31,12 +31,22 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language }) => {
   const [activeTab, setActiveTab] = useState('overview');
   const [dashboardData, setDashboardData] = useState<any>(null);
   const [blogPosts, setBlogPosts] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isShopModalOpen, setIsShopModalOpen] = useState(false);
   const [editingPost, setEditingPost] = useState<any>(null);
+  const [editingProduct, setEditingProduct] = useState<any>(null);
   const [formData, setFormData] = useState({
-    title: '', excerpt: '', content: '', image: '', date: '', readTime: '', author: '', authorRole: '', language: language
+    title: '', excerpt: '', content: '', image: '', date: '', readTime: '', author: '', authorRole: '', language: 'fr'
+  });
+  const [shopFormData, setShopFormData] = useState({
+    image: '', price: '', rating: 5.0, category: 'Tisanes', weight: '70g',
+    content: {
+      fr: { name: '', desc: '', specs: [''] },
+      en: { name: '', desc: '', specs: [''] }
+    }
   });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -62,6 +72,49 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language }) => {
     setEditingPost(null);
     setSelectedFile(null);
     setImagePreview(null);
+  };
+
+  const handleCloseShopModal = () => {
+    setIsShopModalOpen(false);
+    setEditingProduct(null);
+    setSelectedFile(null);
+    setImagePreview(null);
+  };
+
+  const handleSaveProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      let finalImageUrl = shopFormData.image;
+      
+      if (selectedFile) {
+        const uploadData = new FormData();
+        uploadData.append('file', selectedFile);
+        
+        const uploadRes = await fetch('http://localhost:3001/products/upload', {
+          method: 'POST',
+          body: uploadData,
+        });
+        
+        if (uploadRes.ok) {
+          const uploadResult = await uploadRes.json();
+          finalImageUrl = 'http://localhost:3001' + uploadResult.url;
+        }
+      }
+
+      const productData = { ...shopFormData, image: finalImageUrl };
+
+      const url = editingProduct ? `http://localhost:3001/products/${editingProduct.id}` : 'http://localhost:3001/products';
+      const method = editingProduct ? 'PUT' : 'POST';
+      await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(productData)
+      });
+      fetchProducts();
+      handleCloseShopModal();
+    } catch (err) {
+      console.error('Failed to save product', err);
+    }
   };
 
   const handleSavePost = async (e: React.FormEvent) => {
@@ -93,20 +146,30 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(postData)
       });
-      fetchBlogPosts();
+      fetchPosts();
       handleCloseModal();
     } catch (err) {
       console.error('Failed to save post', err);
     }
   };
 
-  const fetchBlogPosts = async () => {
+  const fetchPosts = async () => {
     try {
       const response = await fetch(`http://localhost:3001/blog?language=${language}`);
       const data = await response.json();
       setBlogPosts(data);
     } catch (error) {
       console.error('Error fetching blog posts:', error);
+    }
+  };
+
+  const fetchProducts = async () => {
+    try {
+      const response = await fetch(`http://localhost:3001/products`);
+      const data = await response.json();
+      setProducts(data);
+    } catch (error) {
+      console.error('Failed to fetch products', error);
     }
   };
 
@@ -124,18 +187,37 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language }) => {
     };
 
     fetchDashboardData();
-    fetchBlogPosts();
+    fetchProducts();
+  }, []);
+
+  useEffect(() => {
+    fetchPosts();
   }, [language]);
 
   const handleDeletePost = async (id: string) => {
     if (window.confirm(language === 'fr' ? 'Êtes-vous sûr de vouloir supprimer cet article ?' : 'Are you sure you want to delete this post?')) {
       try {
         await fetch(`http://localhost:3001/blog/${id}`, { method: 'DELETE' });
-        fetchBlogPosts(); // Refresh list
+        fetchPosts(); // Refresh list
       } catch (err) {
         console.error('Failed to delete post:', err);
       }
     }
+  };
+
+  const handleDeleteProduct = async (id: string) => {
+    if (window.confirm(language === 'fr' ? 'Êtes-vous sûr de vouloir supprimer ce produit ?' : 'Are you sure you want to delete this product?')) {
+      try {
+        await fetch(`http://localhost:3001/products/${id}`, { method: 'DELETE' });
+        fetchProducts(); // Refresh list
+      } catch (err) {
+        console.error('Failed to delete product:', err);
+      }
+    }
+  };
+
+  const handleSeedProducts = async () => {
+    // Add logic later
   };
 
   const getIconForStat = (title: string) => {
@@ -166,6 +248,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language }) => {
     { id: 'overview', label: language === 'fr' ? 'Vue d\'ensemble' : 'Overview', icon: <Home className="w-5 h-5" /> },
     { id: 'analytics', label: language === 'fr' ? 'Analytique' : 'Analytics', icon: <BarChart3 className="w-5 h-5" /> },
     { id: 'users', label: language === 'fr' ? 'Clients' : 'Customers', icon: <Users className="w-5 h-5" /> },
+    { id: 'shop', label: language === 'fr' ? 'Boutique' : 'Shop', icon: <ShoppingBag className="w-5 h-5" /> },
     { id: 'products', label: language === 'fr' ? 'Produits' : 'Products', icon: <Package className="w-5 h-5" /> },
     { id: 'orders', label: language === 'fr' ? 'Commandes' : 'Orders', icon: <ShoppingBag className="w-5 h-5" /> },
     { id: 'posts', label: language === 'fr' ? 'Articles de Blog' : 'Blog Posts', icon: <FileText className="w-5 h-5" /> },
@@ -226,7 +309,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language }) => {
         <div className="p-4 border-t border-slate-100">
           <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-red-50 hover:text-red-600 transition-colors">
             <LogOut className="w-5 h-5 text-slate-400" />
-            <span>Logout</span>
+            <span>{language === 'fr' ? 'Déconnexion' : 'Logout'}</span>
           </button>
         </div>
       </aside>
@@ -243,7 +326,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language }) => {
               <Menu className="w-6 h-6" />
             </button>
             <h1 className="text-xl font-semibold text-slate-800 capitalize hidden sm:block">
-              {activeTab} Dashboard
+              {language === 'fr' ? 'Tableau de bord ' + activeTab : activeTab + ' Dashboard'}
             </h1>
           </div>
 
@@ -252,7 +335,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language }) => {
               <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
               <input 
                 type="text" 
-                placeholder="Search..." 
+                placeholder={language === 'fr' ? "Rechercher..." : "Search..."} 
                 className="pl-9 pr-4 py-2 w-64 rounded-full bg-slate-100 border-transparent focus:bg-white focus:border-green-500 focus:ring-2 focus:ring-green-200 text-sm transition-all"
               />
             </div>
@@ -273,7 +356,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language }) => {
                 />
                 <div className="hidden md:block text-left">
                   <p className="text-sm font-medium text-slate-700 leading-none">Admin User</p>
-                  <p className="text-xs text-slate-500 mt-1">Administrator</p>
+                  <p className="text-xs text-slate-500 mt-1">{language === 'fr' ? 'Administrateur' : 'Administrator'}</p>
                 </div>
               </button>
             </div>
@@ -292,25 +375,25 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language }) => {
             {activeTab === 'overview' ? (
               <>
                 <div>
-                  <h2 className="text-2xl font-bold text-slate-800">Welcome back, Admin 👋</h2>
-                  <p className="text-slate-500 text-sm mt-1">Here is what's happening with your project today.</p>
+                  <h2 className="text-2xl font-bold text-slate-800">{language === 'fr' ? 'Bon retour, Admin 👋' : 'Welcome back, Admin 👋'}</h2>
+                  <p className="text-slate-500 text-sm mt-1">{language === 'fr' ? "Voici ce qui se passe sur votre projet aujourd'hui." : "Here is what's happening with your project today."}</p>
                 </div>
                 <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm">
                   <Calendar className="w-4 h-4 text-slate-400" />
                   <span className="text-sm font-medium text-slate-600">
-                    {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    {new Date().toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                   </span>
                 </div>
               </>
             ) : activeTab === 'posts' ? (
               <>
                 <div>
-                  <h2 className="text-2xl font-bold text-slate-800">Blog Posts</h2>
-                  <p className="text-slate-500 text-sm mt-1">Manage your website's blog content.</p>
+                  <h2 className="text-2xl font-bold text-slate-800">{language === 'fr' ? 'Articles de Blog' : 'Blog Posts'}</h2>
+                  <p className="text-slate-500 text-sm mt-1">{language === 'fr' ? "Gérez le contenu du blog de votre site Web." : "Manage your website's blog content."}</p>
                 </div>
                 <button onClick={() => handleOpenModal()} className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors shadow-sm">
                   <Plus className="w-4 h-4" />
-                  <span className="text-sm font-medium">New Post</span>
+                  <span className="text-sm font-medium">{language === 'fr' ? 'Nouvel Article' : 'New Post'}</span>
                 </button>
               </>
             ) : (
@@ -353,13 +436,13 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language }) => {
             <div className="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
               <div className="flex justify-between items-center mb-6">
                 <div>
-                  <h3 className="text-lg font-bold text-slate-800">Revenue Overview</h3>
-                  <p className="text-sm text-slate-500">Monthly revenue and sales performance</p>
+                  <h3 className="text-lg font-bold text-slate-800">{language === 'fr' ? 'Aperçu des Revenus' : 'Revenue Overview'}</h3>
+                  <p className="text-sm text-slate-500">{language === 'fr' ? 'Performance mensuelle des revenus et des ventes' : 'Monthly revenue and sales performance'}</p>
                 </div>
                 <select className="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-green-500 focus:border-green-500 block p-2">
-                  <option>Last 7 days</option>
-                  <option>Last 30 days</option>
-                  <option>This Year</option>
+                  <option>{language === 'fr' ? 'Les 7 derniers jours' : 'Last 7 days'}</option>
+                  <option>{language === 'fr' ? 'Les 30 derniers jours' : 'Last 30 days'}</option>
+                  <option>{language === 'fr' ? 'Cette année' : 'This Year'}</option>
                 </select>
               </div>
               
@@ -396,7 +479,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language }) => {
                     </div>
                     {/* X-axis label */}
                     <div className="absolute -bottom-6 text-xs text-slate-400 w-full text-center">
-                      {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][i]}
+                      {language === 'fr' ? ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'][i] : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][i]}
                     </div>
                   </div>
                 ))}
@@ -405,12 +488,12 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language }) => {
 
             {/* Recent Activity / Quick Actions */}
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex flex-col">
-              <h3 className="text-lg font-bold text-slate-800 mb-6">Quick Stats</h3>
+              <h3 className="text-lg font-bold text-slate-800 mb-6">{language === 'fr' ? 'Statistiques Rapides' : 'Quick Stats'}</h3>
               
               <div className="space-y-6 flex-1">
                 <div>
                   <div className="flex justify-between text-sm mb-2">
-                    <span className="font-medium text-slate-700">Storage Usage</span>
+                    <span className="font-medium text-slate-700">{language === 'fr' ? 'Utilisation du Stockage' : 'Storage Usage'}</span>
                     <span className="text-slate-500">{recentActivity.storageUsage}%</span>
                   </div>
                   <div className="w-full bg-slate-100 rounded-full h-2">
@@ -420,7 +503,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language }) => {
                 
                 <div>
                   <div className="flex justify-between text-sm mb-2">
-                    <span className="font-medium text-slate-700">Monthly Target</span>
+                    <span className="font-medium text-slate-700">{language === 'fr' ? 'Objectif Mensuel' : 'Monthly Target'}</span>
                     <span className="text-slate-500">{recentActivity.monthlyTarget}%</span>
                   </div>
                   <div className="w-full bg-slate-100 rounded-full h-2">
@@ -430,7 +513,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language }) => {
 
                 <div>
                   <div className="flex justify-between text-sm mb-2">
-                    <span className="font-medium text-slate-700">Server Load</span>
+                    <span className="font-medium text-slate-700">{language === 'fr' ? 'Charge du Serveur' : 'Server Load'}</span>
                     <span className="text-slate-500">{recentActivity.serverLoad}%</span>
                   </div>
                   <div className="w-full bg-slate-100 rounded-full h-2">
@@ -440,11 +523,11 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language }) => {
               </div>
 
               <div className="mt-8 pt-6 border-t border-slate-100">
-                <h4 className="text-sm font-semibold text-slate-800 mb-4">Traffic Sources</h4>
+                <h4 className="text-sm font-semibold text-slate-800 mb-4">{language === 'fr' ? 'Sources de Trafic' : 'Traffic Sources'}</h4>
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                    <span className="text-sm text-slate-600">Organic Search</span>
+                    <span className="text-sm text-slate-600">{language === 'fr' ? 'Recherche Organique' : 'Organic Search'}</span>
                   </div>
                   <span className="text-sm font-medium text-slate-800">{trafficSources.organic}%</span>
                 </div>
@@ -458,7 +541,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language }) => {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full bg-purple-500"></div>
-                    <span className="text-sm text-slate-600">Social Media</span>
+                    <span className="text-sm text-slate-600">{language === 'fr' ? 'Réseaux Sociaux' : 'Social Media'}</span>
                   </div>
                   <span className="text-sm font-medium text-slate-800">{trafficSources.social}%</span>
                 </div>
@@ -470,23 +553,23 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language }) => {
           <div className="mt-8 bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
             <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
-                <h3 className="text-lg font-bold text-slate-800">Recent Orders</h3>
-                <p className="text-sm text-slate-500">Latest transactions from your store</p>
+                <h3 className="text-lg font-bold text-slate-800">{language === 'fr' ? 'Commandes Récentes' : 'Recent Orders'}</h3>
+                <p className="text-sm text-slate-500">{language === 'fr' ? 'Dernières transactions de votre boutique' : 'Latest transactions from your store'}</p>
               </div>
               <button className="text-sm font-medium text-green-600 hover:text-green-700 flex items-center gap-1">
-                View all <ChevronRight className="w-4 h-4" />
+                {language === 'fr' ? 'Tout voir' : 'View all'} <ChevronRight className="w-4 h-4" />
               </button>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-slate-50 text-slate-500 text-sm uppercase tracking-wider">
-                    <th className="px-6 py-4 font-medium">Order ID</th>
-                    <th className="px-6 py-4 font-medium">Customer</th>
-                    <th className="px-6 py-4 font-medium">Product</th>
-                    <th className="px-6 py-4 font-medium">Date</th>
-                    <th className="px-6 py-4 font-medium">Amount</th>
-                    <th className="px-6 py-4 font-medium">Status</th>
+                    <th className="px-6 py-4 font-medium">{language === 'fr' ? 'ID Commande' : 'Order ID'}</th>
+                    <th className="px-6 py-4 font-medium">{language === 'fr' ? 'Client' : 'Customer'}</th>
+                    <th className="px-6 py-4 font-medium">{language === 'fr' ? 'Produit' : 'Product'}</th>
+                    <th className="px-6 py-4 font-medium">{language === 'fr' ? 'Date' : 'Date'}</th>
+                    <th className="px-6 py-4 font-medium">{language === 'fr' ? 'Montant' : 'Amount'}</th>
+                    <th className="px-6 py-4 font-medium">{language === 'fr' ? 'Statut' : 'Status'}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-sm">
@@ -518,18 +601,18 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language }) => {
           {activeTab === 'posts' && (
             <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
               <div className="p-6 border-b border-slate-100 flex justify-between items-center">
-                <h3 className="text-lg font-bold text-slate-800">All Posts</h3>
+                <h3 className="text-lg font-bold text-slate-800">{language === 'fr' ? 'Tous les articles' : 'All Posts'}</h3>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-slate-50 text-slate-500 text-sm uppercase tracking-wider">
-                      <th className="px-6 py-4 font-medium w-16">Image</th>
-                      <th className="px-6 py-4 font-medium">Title</th>
-                      <th className="px-6 py-4 font-medium">Author</th>
-                      <th className="px-6 py-4 font-medium">Date</th>
-                      <th className="px-6 py-4 font-medium">Status</th>
-                      <th className="px-6 py-4 font-medium text-right">Actions</th>
+                      <th className="px-6 py-4 font-medium w-16">{language === 'fr' ? 'Image' : 'Image'}</th>
+                      <th className="px-6 py-4 font-medium">{language === 'fr' ? 'Titre' : 'Title'}</th>
+                      <th className="px-6 py-4 font-medium">{language === 'fr' ? 'Auteur' : 'Author'}</th>
+                      <th className="px-6 py-4 font-medium">{language === 'fr' ? 'Date' : 'Date'}</th>
+                      <th className="px-6 py-4 font-medium">{language === 'fr' ? 'Statut' : 'Status'}</th>
+                      <th className="px-6 py-4 font-medium text-right">{language === 'fr' ? 'Actions' : 'Actions'}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-sm">
@@ -542,7 +625,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language }) => {
                             </div>
                           ) : (
                             <div className="w-12 h-12 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center">
-                              <span className="text-slate-400 text-xs">No img</span>
+                              <span className="text-slate-400 text-xs">{language === 'fr' ? 'Pas d\'img' : 'No img'}</span>
                             </div>
                           )}
                         </td>
@@ -557,6 +640,78 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language }) => {
                         <td className="px-6 py-4 text-right">
                           <button onClick={() => handleOpenModal(post)} className="text-slate-400 hover:text-blue-600 mx-2 transition-colors"><Edit3 className="w-4 h-4" /></button>
                           <button onClick={() => handleDeletePost(post.id)} className="text-slate-400 hover:text-red-600 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+          {activeTab === 'shop' && (
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+              <div className="p-6 border-b border-slate-100 flex justify-between items-center">
+                <h3 className="text-lg font-bold text-slate-800">{language === 'fr' ? 'Produits Boutique' : 'Shop Products'}</h3>
+                <button onClick={() => {
+                  setEditingProduct(null);
+                  setShopFormData({
+                    image: '', price: '', rating: 5.0, category: 'Tisanes', weight: '70g',
+                    content: { fr: { name: '', desc: '', specs: [''] }, en: { name: '', desc: '', specs: [''] } }
+                  });
+                  setIsShopModalOpen(true);
+                }} className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors shadow-sm">
+                  <Plus className="w-4 h-4" />
+                  <span className="text-sm font-medium">{language === 'fr' ? 'Nouveau Produit' : 'New Product'}</span>
+                </button>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 text-slate-500 text-sm uppercase tracking-wider">
+                      <th className="px-6 py-4 font-medium w-16">{language === 'fr' ? 'Image' : 'Image'}</th>
+                      <th className="px-6 py-4 font-medium">{language === 'fr' ? 'Nom' : 'Name'}</th>
+                      <th className="px-6 py-4 font-medium">{language === 'fr' ? 'Catégorie' : 'Category'}</th>
+                      <th className="px-6 py-4 font-medium">{language === 'fr' ? 'Prix' : 'Price'}</th>
+                      <th className="px-6 py-4 font-medium text-right">{language === 'fr' ? 'Actions' : 'Actions'}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-sm">
+                    {products.map((product) => (
+                      <tr key={product.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-6 py-4">
+                          {product.image ? (
+                            <div className="w-12 h-12 rounded-lg overflow-hidden border border-slate-200">
+                              <img src={product.image} alt={product.content?.en?.name} className="w-full h-full object-cover" />
+                            </div>
+                          ) : (
+                            <div className="w-12 h-12 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center">
+                              <span className="text-slate-400 text-xs">{language === 'fr' ? 'Pas d\'img' : 'No img'}</span>
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 font-medium text-slate-800">
+                          {product.content?.[language]?.name || product.content?.fr?.name || 'Unnamed'}
+                        </td>
+                        <td className="px-6 py-4 text-slate-600">{product.category}</td>
+                        <td className="px-6 py-4 text-slate-600">{product.price}</td>
+                        <td className="px-6 py-4 text-right">
+                          <button onClick={() => {
+                            setEditingProduct(product);
+                            setShopFormData({
+                              image: product.image,
+                              price: product.price,
+                              rating: product.rating,
+                              category: product.category,
+                              weight: product.weight,
+                              content: product.content || {
+                                fr: { name: '', desc: '', specs: [''] },
+                                en: { name: '', desc: '', specs: [''] }
+                              }
+                            });
+                            setImagePreview(product.image);
+                            setIsShopModalOpen(true);
+                          }} className="text-slate-400 hover:text-blue-600 mx-2 transition-colors"><Edit3 className="w-4 h-4" /></button>
+                          <button onClick={() => handleDeleteProduct(product.id)} className="text-slate-400 hover:text-red-600 transition-colors"><Trash2 className="w-4 h-4" /></button>
                         </td>
                       </tr>
                     ))}
@@ -594,20 +749,20 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language }) => {
               <div className="flex gap-6">
                 <div className="w-2/3 space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Title</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{language === 'fr' ? 'Titre' : 'Title'}</label>
                     <input required type="text" className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-green-500 outline-none transition-shadow" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Excerpt</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{language === 'fr' ? 'Extrait' : 'Excerpt'}</label>
                     <textarea required className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-green-500 outline-none transition-shadow" value={formData.excerpt} onChange={e => setFormData({...formData, excerpt: e.target.value})} />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Content</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{language === 'fr' ? 'Contenu' : 'Content'}</label>
                     <textarea required rows={5} className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-green-500 outline-none transition-shadow" value={formData.content} onChange={e => setFormData({...formData, content: e.target.value})} />
                   </div>
                 </div>
                 <div className="w-1/3 flex flex-col">
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Featured Image</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">{language === 'fr' ? 'Image à la Une' : 'Featured Image'}</label>
                   
                   <div className="w-full aspect-video rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center overflow-hidden relative group hover:border-green-500 transition-colors mb-3">
                     <input 
@@ -627,18 +782,18 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language }) => {
                     ) : (
                       <div className="text-center text-slate-400 p-4">
                         <Plus className="w-8 h-8 mx-auto mb-2 opacity-50 group-hover:text-green-500 transition-colors" />
-                        <span className="text-sm font-medium">Click to upload image</span>
+                        <span className="text-sm font-medium">{language === 'fr' ? 'Cliquez pour uploader une image' : 'Click to upload image'}</span>
                       </div>
                     )}
                     {imagePreview && (
                       <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                         <span className="text-white text-sm font-medium bg-black/30 px-3 py-1.5 rounded-full">Change Image</span>
+                         <span className="text-white text-sm font-medium bg-black/30 px-3 py-1.5 rounded-full">{language === 'fr' ? 'Changer l\'image' : 'Change Image'}</span>
                       </div>
                     )}
                   </div>
                   
                   <div className="mt-auto pt-4 border-t border-slate-100">
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Image URL (Optional fallback)</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{language === 'fr' ? 'URL de l\'image (optionnelle)' : 'Image URL (Optional fallback)'}</label>
                     <input type="text" className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-green-500 outline-none transition-shadow text-sm" value={formData.image} onChange={e => { setFormData({...formData, image: e.target.value}); if(!selectedFile) setImagePreview(e.target.value); }} placeholder="https://..." />
                   </div>
                 </div>
@@ -646,32 +801,150 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language }) => {
               <div className="grid grid-cols-2 gap-4">
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Date</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">{language === 'fr' ? 'Date' : 'Date'}</label>
                   <input type="text" className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-green-500 outline-none transition-shadow" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Read Time</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">{language === 'fr' ? 'Temps de lecture' : 'Read Time'}</label>
                   <input type="text" className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-green-500 outline-none transition-shadow" value={formData.readTime} onChange={e => setFormData({...formData, readTime: e.target.value})} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Language</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">{language === 'fr' ? 'Langue' : 'Language'}</label>
                   <select className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-green-500 outline-none transition-shadow" value={formData.language} onChange={e => setFormData({...formData, language: e.target.value})}>
-                    <option value="fr">French</option>
-                    <option value="en">English</option>
+                    <option value="fr">{language === 'fr' ? 'Français' : 'French'}</option>
+                    <option value="en">{language === 'fr' ? 'Anglais' : 'English'}</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Author</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">{language === 'fr' ? 'Auteur' : 'Author'}</label>
                   <input type="text" className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-green-500 outline-none transition-shadow" value={formData.author} onChange={e => setFormData({...formData, author: e.target.value})} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Author Role</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">{language === 'fr' ? 'Rôle de l\'auteur' : 'Author Role'}</label>
                   <input type="text" className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-green-500 outline-none transition-shadow" value={formData.authorRole} onChange={e => setFormData({...formData, authorRole: e.target.value})} />
                 </div>
               </div>
               <div className="pt-4 flex justify-end gap-3 border-t border-slate-100">
-                <button type="button" onClick={handleCloseModal} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">Cancel</button>
-                <button type="submit" className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">Save</button>
+                <button type="button" onClick={handleCloseModal} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">{language === 'fr' ? 'Annuler' : 'Cancel'}</button>
+                <button type="submit" className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">{language === 'fr' ? 'Enregistrer' : 'Save'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal for adding/editing product */}
+      {isShopModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-slate-100 flex justify-between items-center sticky top-0 bg-white z-10">
+              <h2 className="text-xl font-bold text-slate-800">
+                {editingProduct ? (language === 'fr' ? 'Modifier Produit' : 'Edit Product') : (language === 'fr' ? 'Nouveau Produit' : 'New Product')}
+              </h2>
+              <button onClick={handleCloseShopModal} className="text-slate-400 hover:text-slate-600">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <form onSubmit={handleSaveProduct} className="p-6 space-y-6 text-left">
+              <div className="flex gap-6">
+                <div className="w-1/3 flex flex-col">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">{language === 'fr' ? 'Image du Produit' : 'Product Image'}</label>
+                  <div className="w-full aspect-square rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center overflow-hidden relative group hover:border-green-500 transition-colors mb-3">
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
+                      onChange={e => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setSelectedFile(file);
+                          setImagePreview(URL.createObjectURL(file));
+                        }
+                      }} 
+                    />
+                    {imagePreview ? (
+                      <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="text-center text-slate-400 p-4">
+                        <Plus className="w-8 h-8 mx-auto mb-2 opacity-50 group-hover:text-green-500 transition-colors" />
+                        <span className="text-sm font-medium">{language === 'fr' ? 'Uploader Image' : 'Upload Image'}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 mt-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">{language === 'fr' ? 'Prix' : 'Price'}</label>
+                      <input required type="text" className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-green-500 outline-none" value={shopFormData.price} onChange={e => setShopFormData({...shopFormData, price: e.target.value})} placeholder="e.g. 5.00$" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">{language === 'fr' ? 'Poids' : 'Weight'}</label>
+                      <input required type="text" className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-green-500 outline-none" value={shopFormData.weight} onChange={e => setShopFormData({...shopFormData, weight: e.target.value})} placeholder="e.g. 70g" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 mt-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">{language === 'fr' ? 'Catégorie' : 'Category'}</label>
+                      <select required className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-green-500 outline-none" value={shopFormData.category} onChange={e => setShopFormData({...shopFormData, category: e.target.value})}>
+                        <option value="Tisanes">Tisanes</option>
+                        <option value="Farines">Farines</option>
+                        <option value="Miels">Miels</option>
+                        <option value="Huiles">Huiles</option>
+                        <option value="Poudres">Poudres</option>
+                        <option value="Savons">Savons</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">{language === 'fr' ? 'Note' : 'Rating'}</label>
+                      <input required type="number" step="0.1" min="0" max="5" className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-green-500 outline-none" value={shopFormData.rating} onChange={e => setShopFormData({...shopFormData, rating: parseFloat(e.target.value)})} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Content Sections */}
+                <div className="w-2/3 flex flex-col gap-6">
+                  {/* French Content */}
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    <h4 className="font-bold text-slate-800 mb-3 flex items-center gap-2">🇫🇷 {language === 'fr' ? 'Contenu Français' : 'French Content'}</h4>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-xs font-medium text-slate-700 mb-1">{language === 'fr' ? 'Nom' : 'Name'}</label>
+                        <input required type="text" className="w-full border border-slate-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-green-500 outline-none" value={shopFormData.content.fr.name} onChange={e => setShopFormData({...shopFormData, content: {...shopFormData.content, fr: {...shopFormData.content.fr, name: e.target.value}}})} />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-slate-700 mb-1">{language === 'fr' ? 'Description' : 'Description'}</label>
+                        <textarea required rows={3} className="w-full border border-slate-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-green-500 outline-none" value={shopFormData.content.fr.desc} onChange={e => setShopFormData({...shopFormData, content: {...shopFormData.content, fr: {...shopFormData.content.fr, desc: e.target.value}}})} />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-slate-700 mb-1">{language === 'fr' ? 'Caractéristiques (séparées par virgule)' : 'Specs (comma separated)'}</label>
+                        <input type="text" className="w-full border border-slate-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-green-500 outline-none" value={shopFormData.content.fr.specs.join(', ')} onChange={e => setShopFormData({...shopFormData, content: {...shopFormData.content, fr: {...shopFormData.content.fr, specs: e.target.value.split(',').map(s => s.trim())}}})} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* English Content */}
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    <h4 className="font-bold text-slate-800 mb-3 flex items-center gap-2">🇬🇧 {language === 'fr' ? 'Contenu Anglais' : 'English Content'}</h4>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-xs font-medium text-slate-700 mb-1">{language === 'fr' ? 'Nom' : 'Name'}</label>
+                        <input required type="text" className="w-full border border-slate-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-green-500 outline-none" value={shopFormData.content.en.name} onChange={e => setShopFormData({...shopFormData, content: {...shopFormData.content, en: {...shopFormData.content.en, name: e.target.value}}})} />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-slate-700 mb-1">{language === 'fr' ? 'Description' : 'Description'}</label>
+                        <textarea required rows={3} className="w-full border border-slate-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-green-500 outline-none" value={shopFormData.content.en.desc} onChange={e => setShopFormData({...shopFormData, content: {...shopFormData.content, en: {...shopFormData.content.en, desc: e.target.value}}})} />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-slate-700 mb-1">{language === 'fr' ? 'Caractéristiques (séparées par virgule)' : 'Specs (comma separated)'}</label>
+                        <input type="text" className="w-full border border-slate-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-green-500 outline-none" value={shopFormData.content.en.specs.join(', ')} onChange={e => setShopFormData({...shopFormData, content: {...shopFormData.content, en: {...shopFormData.content.en, specs: e.target.value.split(',').map(s => s.trim())}}})} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-4 flex justify-end gap-3 border-t border-slate-100">
+                <button type="button" onClick={handleCloseShopModal} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">{language === 'fr' ? 'Annuler' : 'Cancel'}</button>
+                <button type="submit" className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">{language === 'fr' ? 'Enregistrer' : 'Save'}</button>
               </div>
             </form>
           </div>
