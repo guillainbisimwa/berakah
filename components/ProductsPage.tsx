@@ -13,7 +13,7 @@ const SKELETON_COUNT = 12;
 
 const ProductsPage: React.FC<ProductsPageProps> = ({ language }) => {
   const t = translations[language].productsPage;
-  const equipmentProducts = getTranslatedEquipmentProducts(language);
+  const [dbProducts, setDbProducts] = useState<any[]>([]);
   const [filter, setFilter] = useState('all');
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [modalImageIdx, setModalImageIdx] = useState(0);
@@ -21,9 +21,33 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ language }) => {
   const [productsLoading, setProductsLoading] = useState(true);
 
   useEffect(() => {
-    const timer = setTimeout(() => setProductsLoading(false), 600);
-    return () => clearTimeout(timer);
-  }, []);
+    const fetchProducts = async () => {
+      try {
+        const response = await fetch('http://localhost:3001/products');
+        if (response.ok) {
+          const data = await response.json();
+          // Filter to only include equipment categories
+          const equipmentCategories = ['tools', 'seeds', 'fertilizers', 'dryers'];
+          const filtered = data.filter((p: any) => equipmentCategories.includes(p.category?.toLowerCase()));
+          
+          // Map to correct language
+          const mapped = filtered.map((item: any) => ({
+            ...item,
+            name: item.content?.[language]?.name || item.content?.fr?.name || '',
+            desc: item.content?.[language]?.desc || item.content?.fr?.desc || '',
+            specs: item.content?.[language]?.specs || item.content?.fr?.specs || [],
+          }));
+          setDbProducts(mapped);
+        }
+      } catch (err) {
+        console.error('Failed to fetch equipment products:', err);
+      } finally {
+        setProductsLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, [language]);
 
   const promoImages = [
     "https://res.cloudinary.com/drsd8adkq/image/upload/v1769509264/food-dry_c87v0r.png",
@@ -58,8 +82,8 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ language }) => {
   };
 
   const filteredItems = filter === 'all'
-    ? equipmentProducts
-    : equipmentProducts.filter((item: any) => item.category === filter);
+    ? dbProducts
+    : dbProducts.filter((item: any) => item.category?.toLowerCase() === filter);
 
   const getProductImage = (item: any) => {
     if (item.image) return item.image;
