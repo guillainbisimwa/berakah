@@ -19,7 +19,8 @@ import {
   FileText,
   Edit3,
   Trash2,
-  Plus
+  Plus,
+  Eye
 } from 'lucide-react';
 
 interface DashboardPageProps {
@@ -39,6 +40,8 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language, user, onLogout 
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isShopModalOpen, setIsShopModalOpen] = useState(false);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [viewingItem, setViewingItem] = useState<{type: 'user' | 'product' | 'post', data: any} | null>(null);
   const [editingPost, setEditingPost] = useState<any>(null);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [formData, setFormData] = useState({
@@ -82,6 +85,16 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language, user, onLogout 
     setEditingProduct(null);
     setSelectedFile(null);
     setImagePreview(null);
+  };
+
+  const handleViewItem = (type: 'user' | 'product' | 'post', data: any) => {
+    setViewingItem({ type, data });
+    setIsViewModalOpen(true);
+  };
+
+  const handleCloseViewModal = () => {
+    setIsViewModalOpen(false);
+    setViewingItem(null);
   };
 
   const handleSaveProduct = async (e: React.FormEvent) => {
@@ -295,14 +308,17 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language, user, onLogout 
   const trafficSources = dashboardData?.trafficSources || { organic: 0, direct: 0, social: 0 };
   const recentActivity = dashboardData?.recentActivity || { storageUsage: 0, monthlyTarget: 0, serverLoad: 0 };
 
-  const navItems = [
+  const allNavItems = [
     { id: 'overview', label: language === 'fr' ? 'Vue d\'ensemble' : 'Overview', icon: <Home className="w-5 h-5" /> },
-    { id: 'users', label: language === 'fr' ? 'Clients' : 'Customers', icon: <Users className="w-5 h-5" /> },
+    { id: 'users', label: language === 'fr' ? 'Clients' : 'Customers', icon: <Users className="w-5 h-5" />, adminOnly: true },
     { id: 'shop', label: language === 'fr' ? 'Boutique' : 'Shop', icon: <ShoppingBag className="w-5 h-5" /> },
     { id: 'products', label: language === 'fr' ? 'Produits' : 'Products', icon: <Package className="w-5 h-5" /> },
-    { id: 'posts', label: language === 'fr' ? 'Articles de Blog' : 'Blog Posts', icon: <FileText className="w-5 h-5" /> },
+    // Later we can add Card / Wishlist here if requested
+    { id: 'posts', label: language === 'fr' ? 'Articles de Blog' : 'Blog Posts', icon: <FileText className="w-5 h-5" />, adminOnly: true },
     { id: 'settings', label: language === 'fr' ? 'Paramètres' : 'Settings', icon: <Settings className="w-5 h-5" /> },
   ];
+
+  const navItems = allNavItems.filter(item => !item.adminOnly || user?.role === 'admin');
 
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
 
@@ -460,32 +476,34 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language, user, onLogout 
           {activeTab === 'overview' && (
             <>
               {/* Stats Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            {stats.map((stat, index) => (
-              <div key={index} className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow relative overflow-hidden group">
-                <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-green-50 to-transparent rounded-bl-full -mr-4 -mt-4 opacity-50 group-hover:scale-110 transition-transform"></div>
-                
-                <div className="flex justify-between items-start mb-4">
-                  <div className={`p-3 rounded-xl ${stat.isPositive ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
-                    {stat.icon}
+          {user?.role === 'admin' && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              {stats.map((stat, index) => (
+                <div key={index} className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-green-50 to-transparent rounded-bl-full -mr-4 -mt-4 opacity-50 group-hover:scale-110 transition-transform"></div>
+                  
+                  <div className="flex justify-between items-start mb-4">
+                    <div className={`p-3 rounded-xl ${stat.isPositive ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+                      {stat.icon}
+                    </div>
+                    <div className={`flex items-center gap-1 text-sm font-medium px-2.5 py-1 rounded-full ${
+                      stat.isPositive ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+                    }`}>
+                      {stat.isPositive ? <TrendingUp className="w-3 h-3" /> : <TrendingUp className="w-3 h-3 transform rotate-180" />}
+                      {stat.change}
+                    </div>
                   </div>
-                  <div className={`flex items-center gap-1 text-sm font-medium px-2.5 py-1 rounded-full ${
-                    stat.isPositive ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
-                  }`}>
-                    {stat.isPositive ? <TrendingUp className="w-3 h-3" /> : <TrendingUp className="w-3 h-3 transform rotate-180" />}
-                    {stat.change}
+                  
+                  <div>
+                    <h3 className="text-slate-500 text-sm font-medium mb-1">{stat.title}</h3>
+                    <p className="text-3xl font-bold text-slate-800">{stat.value}</p>
                   </div>
                 </div>
-                
-                <div>
-                  <h3 className="text-slate-500 text-sm font-medium mb-1">{stat.title}</h3>
-                  <p className="text-3xl font-bold text-slate-800">{stat.value}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className={`grid grid-cols-1 gap-8 ${user?.role === 'admin' ? 'lg:grid-cols-2' : 'max-w-3xl'}`}>
             {/* Recent Products */}
             <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex flex-col">
               <div className="p-6 border-b border-slate-100 flex justify-between items-center">
@@ -530,51 +548,52 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language, user, onLogout 
               </div>
             </div>
 
-            {/* Recent Customers */}
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex flex-col">
-              <div className="p-6 border-b border-slate-100 flex justify-between items-center">
-                <div>
-                  <h3 className="text-lg font-bold text-slate-800">{language === 'fr' ? 'Nouveaux Clients' : 'New Customers'}</h3>
-                  <p className="text-sm text-slate-500">{language === 'fr' ? 'Inscriptions récentes' : 'Recently registered'}</p>
+            {user?.role === 'admin' && (
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex flex-col">
+                <div className="p-6 border-b border-slate-100 flex justify-between items-center">
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-800">{language === 'fr' ? 'Nouveaux Clients' : 'New Customers'}</h3>
+                    <p className="text-sm text-slate-500">{language === 'fr' ? 'Inscriptions récentes' : 'Recently registered'}</p>
+                  </div>
+                  <button onClick={() => setActiveTab('users')} className="text-sm font-medium text-green-600 hover:text-green-700 flex items-center gap-1">
+                    {language === 'fr' ? 'Tout voir' : 'View all'} <ChevronRight className="w-4 h-4" />
+                  </button>
                 </div>
-                <button onClick={() => setActiveTab('users')} className="text-sm font-medium text-green-600 hover:text-green-700 flex items-center gap-1">
-                  {language === 'fr' ? 'Tout voir' : 'View all'} <ChevronRight className="w-4 h-4" />
-                </button>
+                <div className="p-0 flex-1">
+                  <ul className="divide-y divide-slate-100">
+                    {users.slice(-5).reverse().map((user, i) => (
+                      <li key={user._id || i} className="p-4 hover:bg-slate-50 transition-colors flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-sm shrink-0 bg-slate-100">
+                          <img 
+                            src={`https://ui-avatars.com/api/?name=${user.firstName || 'U'}+${user.lastName || ''}&background=0D8ABC&color=fff`} 
+                            alt="avatar" 
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold text-slate-800 truncate">
+                            {user.firstName} {user.lastName}
+                          </p>
+                          <p className="text-xs text-slate-500 truncate mt-0.5">{user.email}</p>
+                        </div>
+                        <div className="shrink-0">
+                          <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                            user.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-slate-100 text-slate-600'
+                          }`}>
+                            {user.role === 'admin' ? 'Admin' : 'User'}
+                          </span>
+                        </div>
+                      </li>
+                    ))}
+                    {users.length === 0 && (
+                      <li className="p-8 text-center text-slate-500 text-sm">
+                        {language === 'fr' ? 'Aucun client trouvé.' : 'No customers found.'}
+                      </li>
+                    )}
+                  </ul>
+                </div>
               </div>
-              <div className="p-0 flex-1">
-                <ul className="divide-y divide-slate-100">
-                  {users.slice(-5).reverse().map((user, i) => (
-                    <li key={user._id || i} className="p-4 hover:bg-slate-50 transition-colors flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-sm shrink-0 bg-slate-100">
-                        <img 
-                          src={`https://ui-avatars.com/api/?name=${user.firstName || 'U'}+${user.lastName || ''}&background=0D8ABC&color=fff`} 
-                          alt="avatar" 
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-slate-800 truncate">
-                          {user.firstName} {user.lastName}
-                        </p>
-                        <p className="text-xs text-slate-500 truncate mt-0.5">{user.email}</p>
-                      </div>
-                      <div className="shrink-0">
-                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                          user.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-slate-100 text-slate-600'
-                        }`}>
-                          {user.role === 'admin' ? 'Admin' : 'User'}
-                        </span>
-                      </div>
-                    </li>
-                  ))}
-                  {users.length === 0 && (
-                    <li className="p-8 text-center text-slate-500 text-sm">
-                      {language === 'fr' ? 'Aucun client trouvé.' : 'No customers found.'}
-                    </li>
-                  )}
-                </ul>
-              </div>
-            </div>
+            )}
           </div>
           </>)}
 
@@ -611,6 +630,9 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language, user, onLogout 
                           </span>
                         </td>
                         <td className="px-6 py-4 text-right">
+                          <button onClick={() => handleViewItem('user', u)} className="p-2 text-slate-400 hover:bg-slate-50 hover:text-slate-700 rounded-lg transition-colors" title={language === 'fr' ? 'Voir' : 'View'}>
+                            <Eye className="w-4 h-4" />
+                          </button>
                           <button onClick={() => handleDeleteUser(u._id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors" title={language === 'fr' ? 'Supprimer' : 'Delete'}>
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -684,17 +706,19 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language, user, onLogout 
             <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
               <div className="p-6 border-b border-slate-100 flex justify-between items-center">
                 <h3 className="text-lg font-bold text-slate-800">{language === 'fr' ? 'Produits Boutique' : 'Shop Products'}</h3>
-                <button onClick={() => {
-                  setEditingProduct(null);
-                  setShopFormData({
-                    image: '', price: '', rating: 5.0, category: 'Tisanes', weight: '70g',
-                    content: { fr: { name: '', desc: '', specs: [''] }, en: { name: '', desc: '', specs: [''] } }
-                  });
-                  setIsShopModalOpen(true);
-                }} className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors shadow-sm">
-                  <Plus className="w-4 h-4" />
-                  <span className="text-sm font-medium">{language === 'fr' ? 'Nouveau Produit' : 'New Product'}</span>
-                </button>
+                {user?.role === 'admin' && (
+                  <button onClick={() => {
+                    setEditingProduct(null);
+                    setShopFormData({
+                      image: '', price: '', rating: 5.0, category: 'Tisanes', weight: '70g',
+                      content: { fr: { name: '', desc: '', specs: [''] }, en: { name: '', desc: '', specs: [''] } }
+                    });
+                    setIsShopModalOpen(true);
+                  }} className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors shadow-sm">
+                    <Plus className="w-4 h-4" />
+                    <span className="text-sm font-medium">{language === 'fr' ? 'Nouveau Produit' : 'New Product'}</span>
+                  </button>
+                )}
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
@@ -727,23 +751,30 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language, user, onLogout 
                         <td className="px-6 py-4 text-slate-600">{product.category}</td>
                         <td className="px-6 py-4 text-slate-600">{product.price}</td>
                         <td className="px-6 py-4 text-right">
-                          <button onClick={() => {
-                            setEditingProduct(product);
-                            setShopFormData({
-                              image: product.image,
-                              price: product.price,
-                              rating: product.rating,
-                              category: product.category,
-                              weight: product.weight,
-                              content: product.content || {
-                                fr: { name: '', desc: '', specs: [''] },
-                                en: { name: '', desc: '', specs: [''] }
-                              }
-                            });
-                            setImagePreview(product.image);
-                            setIsShopModalOpen(true);
-                          }} className="text-slate-400 hover:text-blue-600 mx-2 transition-colors"><Edit3 className="w-4 h-4" /></button>
-                          <button onClick={() => handleDeleteProduct(product.id)} className="text-slate-400 hover:text-red-600 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                          <button onClick={() => handleViewItem('product', product)} className="text-slate-400 hover:text-slate-600 mx-2 transition-colors" title={language === 'fr' ? 'Voir' : 'View'}>
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          {user?.role === 'admin' && (
+                            <>
+                              <button onClick={() => {
+                                setEditingProduct(product);
+                                setShopFormData({
+                                  image: product.image,
+                                  price: product.price,
+                                  rating: product.rating,
+                                  category: product.category,
+                                  weight: product.weight,
+                                  content: {
+                                    fr: { name: product.content?.fr?.name || '', desc: product.content?.fr?.desc || '', specs: product.content?.fr?.specs || [''] },
+                                    en: { name: product.content?.en?.name || '', desc: product.content?.en?.desc || '', specs: product.content?.en?.specs || [''] }
+                                  }
+                                });
+                                setImagePreview(product.image);
+                                setIsShopModalOpen(true);
+                              }} className="text-slate-400 hover:text-blue-600 mx-2 transition-colors"><Edit3 className="w-4 h-4" /></button>
+                              <button onClick={() => handleDeleteProduct(product.id)} className="text-slate-400 hover:text-red-600 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                            </>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -756,17 +787,19 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language, user, onLogout 
             <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
               <div className="p-6 border-b border-slate-100 flex justify-between items-center">
                 <h3 className="text-lg font-bold text-slate-800">{language === 'fr' ? 'Équipements & Produits' : 'Equipment Products'}</h3>
-                <button onClick={() => {
-                  setEditingProduct(null);
-                  setShopFormData({
-                    image: '', price: '', rating: 5.0, category: 'tools', weight: '',
-                    content: { fr: { name: '', desc: '', specs: [''] }, en: { name: '', desc: '', specs: [''] } }
-                  });
-                  setIsShopModalOpen(true);
-                }} className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors shadow-sm">
-                  <Plus className="w-4 h-4" />
-                  <span className="text-sm font-medium">{language === 'fr' ? 'Nouvel Équipement' : 'New Equipment'}</span>
-                </button>
+                {user?.role === 'admin' && (
+                  <button onClick={() => {
+                    setEditingProduct(null);
+                    setShopFormData({
+                      image: '', price: '', rating: 5.0, category: 'tools', weight: '',
+                      content: { fr: { name: '', desc: '', specs: [''] }, en: { name: '', desc: '', specs: [''] } }
+                    });
+                    setIsShopModalOpen(true);
+                  }} className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors shadow-sm">
+                    <Plus className="w-4 h-4" />
+                    <span className="text-sm font-medium">{language === 'fr' ? 'Nouvel Équipement' : 'New Equipment'}</span>
+                  </button>
+                )}
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
@@ -799,23 +832,30 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language, user, onLogout 
                         <td className="px-6 py-4 text-slate-600">{product.category}</td>
                         <td className="px-6 py-4 text-slate-600">{product.price}</td>
                         <td className="px-6 py-4 text-right">
-                          <button onClick={() => {
-                            setEditingProduct(product);
-                            setShopFormData({
-                              image: product.image,
-                              price: product.price,
-                              rating: product.rating || 5.0,
-                              category: product.category,
-                              weight: product.weight || '',
-                              content: product.content || {
-                                fr: { name: '', desc: '', specs: [''] },
-                                en: { name: '', desc: '', specs: [''] }
-                              }
-                            });
-                            setImagePreview(product.image);
-                            setIsShopModalOpen(true);
-                          }} className="text-slate-400 hover:text-blue-600 mx-2 transition-colors"><Edit3 className="w-4 h-4" /></button>
-                          <button onClick={() => handleDeleteProduct(product.id)} className="text-slate-400 hover:text-red-600 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                          <button onClick={() => handleViewItem('product', product)} className="text-slate-400 hover:text-slate-600 mx-2 transition-colors" title={language === 'fr' ? 'Voir' : 'View'}>
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          {user?.role === 'admin' && (
+                            <>
+                              <button onClick={() => {
+                                setEditingProduct(product);
+                                setShopFormData({
+                                  image: product.image,
+                                  price: product.price,
+                                  rating: product.rating || 5.0,
+                                  category: product.category,
+                                  weight: product.weight || '',
+                                  content: product.content || {
+                                    fr: { name: '', desc: '', specs: [''] },
+                                    en: { name: '', desc: '', specs: [''] }
+                                  }
+                                });
+                                setImagePreview(product.image);
+                                setIsShopModalOpen(true);
+                              }} className="text-slate-400 hover:text-blue-600 mx-2 transition-colors"><Edit3 className="w-4 h-4" /></button>
+                              <button onClick={() => handleDeleteProduct(product.id)} className="text-slate-400 hover:text-red-600 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                            </>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -1172,6 +1212,92 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language, user, onLogout 
                 <button type="submit" className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">{language === 'fr' ? 'Enregistrer' : 'Save'}</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* View Modal */}
+      {isViewModalOpen && viewingItem && (
+        <div className="fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden">
+            <div className="p-6 border-b border-slate-100 flex justify-between items-center">
+              <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                <Eye className="w-5 h-5 text-green-600" />
+                {language === 'fr' ? 'Détails' : 'Details'}
+              </h2>
+              <button onClick={handleCloseViewModal} className="text-slate-400 hover:text-slate-600">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 max-h-[70vh] overflow-y-auto">
+              {viewingItem.type === 'user' && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-4 mb-6">
+                    <img src={`https://ui-avatars.com/api/?name=${viewingItem.data.firstName || 'U'}+${viewingItem.data.lastName || ''}&background=0D8ABC&color=fff&size=100`} alt="avatar" className="w-20 h-20 rounded-full shadow-sm" />
+                    <div>
+                      <h3 className="text-2xl font-bold text-slate-800">{viewingItem.data.firstName} {viewingItem.data.lastName}</h3>
+                      <span className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider inline-block mt-2 ${
+                        viewingItem.data.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-slate-100 text-slate-600'
+                      }`}>
+                        {viewingItem.data.role === 'admin' ? 'Admin' : 'User'}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-slate-50 p-4 rounded-xl">
+                      <p className="text-xs text-slate-500 font-medium uppercase mb-1">Email</p>
+                      <p className="text-slate-800 font-medium">{viewingItem.data.email}</p>
+                    </div>
+                    <div className="bg-slate-50 p-4 rounded-xl">
+                      <p className="text-xs text-slate-500 font-medium uppercase mb-1">{language === 'fr' ? 'Téléphone' : 'Phone'}</p>
+                      <p className="text-slate-800 font-medium">{viewingItem.data.phone || '-'}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {viewingItem.type === 'product' && (
+                <div className="space-y-6">
+                  {viewingItem.data.image && (
+                    <div className="w-full h-48 rounded-xl overflow-hidden mb-6 bg-slate-50 border border-slate-100">
+                      <img src={viewingItem.data.image} alt="product" className="w-full h-full object-contain" />
+                    </div>
+                  )}
+                  <div>
+                    <h3 className="text-2xl font-bold text-slate-800 mb-2">
+                      {viewingItem.data.content?.[language]?.name || viewingItem.data.content?.fr?.name || 'Unnamed Product'}
+                    </h3>
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      <span className="px-3 py-1 bg-green-50 text-green-700 rounded-full text-sm font-medium">{viewingItem.data.category}</span>
+                      <span className="px-3 py-1 bg-slate-50 text-slate-700 rounded-full text-sm font-medium font-mono">{viewingItem.data.price}</span>
+                      {viewingItem.data.weight && <span className="px-3 py-1 bg-slate-50 text-slate-600 rounded-full text-sm">{viewingItem.data.weight}</span>}
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div className="bg-slate-50 p-4 rounded-xl">
+                      <p className="text-xs text-slate-500 font-medium uppercase mb-2">Description ({language === 'fr' ? 'FR' : 'EN'})</p>
+                      <p className="text-slate-700 text-sm leading-relaxed">
+                        {viewingItem.data.content?.[language]?.desc || viewingItem.data.content?.fr?.desc || '-'}
+                      </p>
+                    </div>
+                    {(viewingItem.data.content?.[language]?.specs || viewingItem.data.content?.fr?.specs)?.length > 0 && (
+                      <div className="bg-slate-50 p-4 rounded-xl">
+                        <p className="text-xs text-slate-500 font-medium uppercase mb-2">{language === 'fr' ? 'Caractéristiques' : 'Specifications'}</p>
+                        <ul className="list-disc list-inside text-sm text-slate-700 space-y-1 ml-2">
+                          {(viewingItem.data.content?.[language]?.specs || viewingItem.data.content?.fr?.specs).map((spec: string, idx: number) => (
+                            <li key={idx}>{spec}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="p-6 border-t border-slate-100 flex justify-end">
+              <button onClick={handleCloseViewModal} className="px-6 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition-colors">
+                {language === 'fr' ? 'Fermer' : 'Close'}
+              </button>
+            </div>
           </div>
         </div>
       )}
