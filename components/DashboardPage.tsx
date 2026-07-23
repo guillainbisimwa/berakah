@@ -676,7 +676,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language }) => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-sm">
-                    {products.map((product) => (
+                    {products.filter(p => !['tools', 'seeds', 'fertilizers', 'dryers'].includes(p.category?.toLowerCase())).map((product) => (
                       <tr key={product.id} className="hover:bg-slate-50 transition-colors">
                         <td className="px-6 py-4">
                           {product.image ? (
@@ -703,6 +703,78 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language }) => {
                               rating: product.rating,
                               category: product.category,
                               weight: product.weight,
+                              content: product.content || {
+                                fr: { name: '', desc: '', specs: [''] },
+                                en: { name: '', desc: '', specs: [''] }
+                              }
+                            });
+                            setImagePreview(product.image);
+                            setIsShopModalOpen(true);
+                          }} className="text-slate-400 hover:text-blue-600 mx-2 transition-colors"><Edit3 className="w-4 h-4" /></button>
+                          <button onClick={() => handleDeleteProduct(product.id)} className="text-slate-400 hover:text-red-600 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+          {activeTab === 'products' && (
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+              <div className="p-6 border-b border-slate-100 flex justify-between items-center">
+                <h3 className="text-lg font-bold text-slate-800">{language === 'fr' ? 'Équipements & Produits' : 'Equipment Products'}</h3>
+                <button onClick={() => {
+                  setEditingProduct(null);
+                  setShopFormData({
+                    image: '', price: '', rating: 5.0, category: 'tools', weight: '',
+                    content: { fr: { name: '', desc: '', specs: [''] }, en: { name: '', desc: '', specs: [''] } }
+                  });
+                  setIsShopModalOpen(true);
+                }} className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors shadow-sm">
+                  <Plus className="w-4 h-4" />
+                  <span className="text-sm font-medium">{language === 'fr' ? 'Nouvel Équipement' : 'New Equipment'}</span>
+                </button>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 text-slate-500 text-sm uppercase tracking-wider">
+                      <th className="px-6 py-4 font-medium w-16">{language === 'fr' ? 'Image' : 'Image'}</th>
+                      <th className="px-6 py-4 font-medium">{language === 'fr' ? 'Nom' : 'Name'}</th>
+                      <th className="px-6 py-4 font-medium">{language === 'fr' ? 'Catégorie' : 'Category'}</th>
+                      <th className="px-6 py-4 font-medium">{language === 'fr' ? 'Prix' : 'Price'}</th>
+                      <th className="px-6 py-4 font-medium text-right">{language === 'fr' ? 'Actions' : 'Actions'}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-sm">
+                    {products.filter(p => ['tools', 'seeds', 'fertilizers', 'dryers'].includes(p.category?.toLowerCase())).map((product) => (
+                      <tr key={product.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-6 py-4">
+                          {product.image ? (
+                            <div className="w-12 h-12 rounded-lg overflow-hidden border border-slate-200">
+                              <img src={product.image} alt={product.content?.en?.name} className="w-full h-full object-cover" />
+                            </div>
+                          ) : (
+                            <div className="w-12 h-12 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center">
+                              <span className="text-slate-400 text-xs">{language === 'fr' ? 'Pas d\'img' : 'No img'}</span>
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 font-medium text-slate-800">
+                          {product.content?.[language]?.name || product.content?.fr?.name || 'Unnamed'}
+                        </td>
+                        <td className="px-6 py-4 text-slate-600">{product.category}</td>
+                        <td className="px-6 py-4 text-slate-600">{product.price}</td>
+                        <td className="px-6 py-4 text-right">
+                          <button onClick={() => {
+                            setEditingProduct(product);
+                            setShopFormData({
+                              image: product.image,
+                              price: product.price,
+                              rating: product.rating || 5.0,
+                              category: product.category,
+                              weight: product.weight || '',
                               content: product.content || {
                                 fr: { name: '', desc: '', specs: [''] },
                                 en: { name: '', desc: '', specs: [''] }
@@ -878,24 +950,35 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language }) => {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-1">{language === 'fr' ? 'Poids' : 'Weight'}</label>
-                      <input required type="text" className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-green-500 outline-none" value={shopFormData.weight} onChange={e => setShopFormData({...shopFormData, weight: e.target.value})} placeholder="e.g. 70g" />
+                      <input type="text" className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-green-500 outline-none" value={shopFormData.weight} onChange={e => setShopFormData({...shopFormData, weight: e.target.value})} placeholder="e.g. 70g" />
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4 mt-4">
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-1">{language === 'fr' ? 'Catégorie' : 'Category'}</label>
                       <select required className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-green-500 outline-none" value={shopFormData.category} onChange={e => setShopFormData({...shopFormData, category: e.target.value})}>
-                        <option value="Tisanes">Tisanes</option>
-                        <option value="Farines">Farines</option>
-                        <option value="Miels">Miels</option>
-                        <option value="Huiles">Huiles</option>
-                        <option value="Poudres">Poudres</option>
-                        <option value="Savons">Savons</option>
+                        {activeTab === 'products' ? (
+                          <>
+                            <option value="tools">Tools / Outils</option>
+                            <option value="seeds">Seeds / Semences</option>
+                            <option value="fertilizers">Fertilizers / Engrais</option>
+                            <option value="dryers">Dryers / Séchoirs</option>
+                          </>
+                        ) : (
+                          <>
+                            <option value="Tisanes">Tisanes</option>
+                            <option value="Farines">Farines</option>
+                            <option value="Miels">Miels</option>
+                            <option value="Huiles">Huiles</option>
+                            <option value="Poudres">Poudres</option>
+                            <option value="Savons">Savons</option>
+                          </>
+                        )}
                       </select>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-1">{language === 'fr' ? 'Note' : 'Rating'}</label>
-                      <input required type="number" step="0.1" min="0" max="5" className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-green-500 outline-none" value={shopFormData.rating} onChange={e => setShopFormData({...shopFormData, rating: parseFloat(e.target.value)})} />
+                      <input type="number" step="0.1" min="0" max="5" className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-green-500 outline-none" value={shopFormData.rating} onChange={e => setShopFormData({...shopFormData, rating: parseFloat(e.target.value)})} />
                     </div>
                   </div>
                 </div>
