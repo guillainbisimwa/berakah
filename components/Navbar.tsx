@@ -118,6 +118,18 @@ const Navbar: React.FC = () => {
             </div>
 
             <button 
+              onClick={() => navigateTo('/auth')}
+              className={cn(
+                "px-4 py-2 rounded-full font-medium text-sm transition-all border",
+                isTransparent 
+                  ? "border-white/30 text-white hover:bg-white hover:text-green-900" 
+                  : "border-green-600 text-green-600 hover:bg-green-600 hover:text-white"
+              )}
+            >
+              {language === 'fr' ? 'Connexion' : 'Login'}
+            </button>
+
+            <button 
               onClick={() => navigateTo('/contacts')}
               className="btn btn-md btn-primary"
             >
@@ -198,6 +210,13 @@ const Navbar: React.FC = () => {
               >EN</button>
             </div>
           </div>
+
+          <button 
+            onClick={() => { navigateTo('/auth'); setMobileMenuOpen(false); }}
+            className="w-full py-3 rounded-full font-medium text-sm transition-all border border-white/30 text-white hover:bg-white hover:text-green-900 mb-2"
+          >
+            {language === 'fr' ? 'Connexion' : 'Login'}
+          </button>
 
           <button 
             onClick={() => { navigateTo('/contacts'); setMobileMenuOpen(false); }}
