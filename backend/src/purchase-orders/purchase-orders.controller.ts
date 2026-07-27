@@ -2,7 +2,7 @@ import { Controller, Get, Post, Body, Param, Req, UseGuards } from '@nestjs/comm
 import { PurchaseOrdersService } from './purchase-orders.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
-@Controller('api/v1/purchase-orders')
+@Controller('purchase-orders')
 @UseGuards(JwtAuthGuard)
 export class PurchaseOrdersController {
   constructor(private readonly purchaseOrdersService: PurchaseOrdersService) {}
