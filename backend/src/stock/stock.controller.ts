@@ -2,7 +2,7 @@ import { Controller, Get, Post, Body, Patch, Param, Query, UseGuards } from '@ne
 import { StockService } from './stock.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
-@Controller('api/v1/stock')
+@Controller('stock')
 @UseGuards(JwtAuthGuard)
 export class StockController {
   constructor(private readonly stockService: StockService) {}
