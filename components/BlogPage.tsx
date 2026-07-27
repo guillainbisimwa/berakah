@@ -2,6 +2,7 @@
 import React from 'react';
 import { Calendar, Clock, ArrowRight } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { API_BASE, API_ORIGIN } from '../lib/api';
 
 interface BlogPageProps { language: 'fr' | 'en'; }
 
@@ -27,7 +28,7 @@ const BlogPage: React.FC<BlogPageProps> = ({ language }) => {
   React.useEffect(() => {
     const fetchPosts = async () => {
       try {
-        const res = await fetch(`http://localhost:3001/blog?language=${language}`);
+        const res = await fetch(`${API_BASE}/blog?language=${language}`);
         const data = await res.json();
         setPosts(data);
       } catch (err) {
