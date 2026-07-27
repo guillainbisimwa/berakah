@@ -2,7 +2,7 @@ import { Controller, Get, Post, Body, Patch, Param, UseGuards } from '@nestjs/co
 import { QualityService } from './quality.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
-@Controller('api/v1/quality')
+@Controller('quality')
 @UseGuards(JwtAuthGuard)
 export class QualityController {
   constructor(private readonly qualityService: QualityService) {}
