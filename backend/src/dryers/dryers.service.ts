@@ -11,7 +11,7 @@ export class DryersService {
     return this.dryerModel.find().exec();
   }
 
-  async findOne(id: string): Promise<Dryer> {
+  async findOne(id: string): Promise<DryerDocument> {
     const dryer = await this.dryerModel.findById(id).exec();
     if (!dryer) {
       throw new NotFoundException(`Dryer #${id} not found`);
