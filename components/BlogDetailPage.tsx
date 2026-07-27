@@ -3,6 +3,7 @@ import React from 'react';
 import { Calendar, Clock, ArrowLeft, Share2, User } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { getPosts, BlogPost } from './BlogPage';
+import { API_BASE, API_ORIGIN } from '../lib/api';
 
 interface BlogDetailPageProps { 
   language: 'fr' | 'en';
@@ -17,7 +18,7 @@ const BlogDetailPage: React.FC<BlogDetailPageProps> = ({ language, postId }) => 
   React.useEffect(() => {
     const fetchPost = async () => {
       try {
-        const res = await fetch(`http://localhost:3001/blog/${postId}`);
+        const res = await fetch(`${API_BASE}/blog/${postId}`);
         if (!res.ok) throw new Error('Post not found');
         const data = await res.json();
         setPost(data);
