@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Mail, Lock, User as UserIcon, ArrowRight, Phone } from 'lucide-react';
+import { API_BASE } from '../lib/api';
 
 interface AuthPageProps {
   language: 'fr' | 'en';
@@ -26,7 +27,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ language, onAuthSuccess }) => {
     }
 
     try {
-      const endpoint = isLogin ? 'http://localhost:3001/auth/login' : 'http://localhost:3001/auth/register';
+      const endpoint = isLogin ? `${API_BASE}/auth/login` : `${API_BASE}/auth/register`;
       const body = isLogin 
         ? { email: formData.email, password: formData.password }
         : { ...formData };
@@ -45,7 +46,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ language, onAuthSuccess }) => {
 
       if (!isLogin) {
         // Automatically log in after registration
-        const loginRes = await fetch('http://localhost:3001/auth/login', {
+        const loginRes = await fetch(`${API_BASE}/auth/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email: formData.email, password: formData.password })
@@ -66,7 +67,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ language, onAuthSuccess }) => {
     <div 
       className="min-h-screen pt-24 pb-16 flex items-center justify-center px-4 relative"
       style={{
-        backgroundImage: 'url("https://res.cloudinary.com/drsd8adkq/image/upload/v1769503463/farm_ylwshl.jpg")',
+        backgroundImage: 'url("https://res.cloudinary.com/drsd8adkq/image/upload/v1770403521/farm0_e0xozm.jpg")',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundAttachment: 'fixed'
