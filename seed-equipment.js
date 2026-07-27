@@ -20,7 +20,7 @@ const items = [
 ];
 
 Promise.all(items.map(item => 
-  fetch("http://localhost:3001/products", {
+  fetch("http://localhost:3001/api/v1/products", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(item)
