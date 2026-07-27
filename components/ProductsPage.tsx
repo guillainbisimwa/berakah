@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Star, Plus, Info, MessageCircle, X, CheckCircle2, ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
 import { translations, getTranslatedEquipmentProducts } from '../translations';
 import ProductCardSkeleton from './ProductCardSkeleton';
+import { API_BASE, API_ORIGIN } from '../lib/api';
 
 interface ProductsPageProps { language: 'fr' | 'en'; }
 
@@ -23,7 +24,7 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ language }) => {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await fetch('http://localhost:3001/products');
+        const response = await fetch(`${API_BASE}/products`);
         if (response.ok) {
           const data = await response.json();
           // Filter to only include equipment categories
