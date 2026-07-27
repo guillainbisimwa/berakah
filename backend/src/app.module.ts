@@ -10,6 +10,11 @@ import { OrdersModule } from './orders/orders.module';
 import { StatsModule } from './stats/stats.module';
 import { PostsModule } from './posts/posts.module';
 import { AuthModule } from './auth/auth.module';
+import { DryersModule } from './dryers/dryers.module';
+import { MarketplaceModule } from './marketplace/marketplace.module';
+import { PurchaseOrdersModule } from './purchase-orders/purchase-orders.module';
+import { QualityModule } from './quality/quality.module';
+import { StockModule } from './stock/stock.module';
 
 @Module({
   imports: [
@@ -22,7 +27,7 @@ import { AuthModule } from './auth/auth.module';
     ProductsModule, 
     OrdersModule, 
     StatsModule, 
-    PostsModule, AuthModule
+    PostsModule, AuthModule, DryersModule, MarketplaceModule, PurchaseOrdersModule, QualityModule, StockModule
   ],
   controllers: [AppController],
   providers: [AppService],

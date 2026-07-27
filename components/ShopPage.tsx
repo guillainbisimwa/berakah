@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Star, Plus, MessageCircle, Info, X, CheckCircle2, ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
 import ProductCardSkeleton from './ProductCardSkeleton';
+import { API_BASE, API_ORIGIN } from '../lib/api';
 
 interface ShopPageProps { language: 'fr' | 'en'; }
 
@@ -34,7 +35,7 @@ const ShopPage: React.FC<ShopPageProps> = ({ language }) => {
     const fetchProducts = async () => {
       try {
         setProductsLoading(true);
-        const res = await fetch('http://localhost:3001/products');
+        const res = await fetch(`${API_BASE}/products`);
         const data = await res.json();
         setProducts(data);
       } catch (error) {

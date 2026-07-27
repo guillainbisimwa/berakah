@@ -22,6 +22,7 @@ import {
   Plus,
   Eye
 } from 'lucide-react';
+import { API_BASE, API_ORIGIN } from '../lib/api';
 
 interface DashboardPageProps {
   language: 'fr' | 'en';
@@ -106,20 +107,20 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language, user, onLogout 
         const uploadData = new FormData();
         uploadData.append('file', selectedFile);
         
-        const uploadRes = await fetch('http://localhost:3001/products/upload', {
+        const uploadRes = await fetch(`${API_BASE}/products/upload`, {
           method: 'POST',
           body: uploadData,
         });
         
         if (uploadRes.ok) {
           const uploadResult = await uploadRes.json();
-          finalImageUrl = 'http://localhost:3001' + uploadResult.url;
+          finalImageUrl = API_ORIGIN + uploadResult.url;
         }
       }
 
       const productData = { ...shopFormData, image: finalImageUrl };
 
-      const url = editingProduct ? `http://localhost:3001/products/${editingProduct.id}` : 'http://localhost:3001/products';
+      const url = editingProduct ? `${API_BASE}/products/${editingProduct.id}` : `${API_BASE}/products`;
       const method = editingProduct ? 'PUT' : 'POST';
       await fetch(url, {
         method,
@@ -142,20 +143,20 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language, user, onLogout 
         const uploadData = new FormData();
         uploadData.append('file', selectedFile);
         
-        const uploadRes = await fetch('http://localhost:3001/blog/upload', {
+        const uploadRes = await fetch(`${API_BASE}/blog/upload`, {
           method: 'POST',
           body: uploadData,
         });
         
         if (uploadRes.ok) {
           const uploadResult = await uploadRes.json();
-          finalImageUrl = 'http://localhost:3001' + uploadResult.url;
+          finalImageUrl = API_ORIGIN + uploadResult.url;
         }
       }
 
       const postData = { ...formData, image: finalImageUrl };
 
-      const url = editingPost ? `http://localhost:3001/blog/${editingPost.id}` : 'http://localhost:3001/blog';
+      const url = editingPost ? `${API_BASE}/blog/${editingPost.id}` : `${API_BASE}/blog`;
       const method = editingPost ? 'PUT' : 'POST';
       await fetch(url, {
         method,
@@ -171,7 +172,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language, user, onLogout 
 
   const fetchPosts = async () => {
     try {
-      const response = await fetch(`http://localhost:3001/blog?language=${language}`);
+      const response = await fetch(`${API_BASE}/blog?language=${language}`);
       const data = await response.json();
       setBlogPosts(data);
     } catch (error) {
@@ -181,7 +182,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language, user, onLogout 
 
   const fetchProducts = async () => {
     try {
-      const response = await fetch(`http://localhost:3001/products`);
+      const response = await fetch(`${API_BASE}/products`);
       const data = await response.json();
       setProducts(data);
     } catch (error) {
@@ -191,7 +192,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language, user, onLogout 
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch('http://localhost:3001/users');
+      const response = await fetch(`${API_BASE}/users`);
       const data = await response.json();
       setUsers(data);
     } catch (error) {
@@ -202,7 +203,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language, user, onLogout 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const response = await fetch('http://localhost:3001/stats/dashboard');
+        const response = await fetch(`${API_BASE}/stats/dashboard`);
         const data = await response.json();
         setDashboardData(data);
       } catch (error) {
@@ -224,7 +225,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language, user, onLogout 
   const handleDeletePost = async (id: string) => {
     if (window.confirm(language === 'fr' ? 'Êtes-vous sûr de vouloir supprimer cet article ?' : 'Are you sure you want to delete this post?')) {
       try {
-        await fetch(`http://localhost:3001/blog/${id}`, { method: 'DELETE' });
+        await fetch(`${API_BASE}/blog/${id}`, { method: 'DELETE' });
         fetchPosts(); // Refresh list
       } catch (err) {
         console.error('Failed to delete post:', err);
@@ -235,7 +236,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language, user, onLogout 
   const handleDeleteProduct = async (id: string) => {
     if (window.confirm(language === 'fr' ? 'Êtes-vous sûr de vouloir supprimer ce produit ?' : 'Are you sure you want to delete this product?')) {
       try {
-        await fetch(`http://localhost:3001/products/${id}`, { method: 'DELETE' });
+        await fetch(`${API_BASE}/products/${id}`, { method: 'DELETE' });
         fetchProducts(); // Refresh list
       } catch (err) {
         console.error('Failed to delete product:', err);
@@ -246,7 +247,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ language, user, onLogout 
   const handleDeleteUser = async (id: string) => {
     if (window.confirm(language === 'fr' ? 'Êtes-vous sûr de vouloir supprimer ce client ?' : 'Are you sure you want to delete this client?')) {
       try {
-        await fetch(`http://localhost:3001/users/${id}`, { method: 'DELETE' });
+        await fetch(`${API_BASE}/users/${id}`, { method: 'DELETE' });
         fetchUsers(); // Refresh list
       } catch (err) {
         console.error('Failed to delete user:', err);
